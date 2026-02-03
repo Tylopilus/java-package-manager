@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
+import jpm.utils.Constants;
 import jpm.utils.FileUtils;
 
 /**
@@ -209,7 +210,7 @@ public class ConfigParser {
   public static JpmConfig loadOrCreate(File configFile) throws IOException {
     var config = load(configFile);
     if (config == null) {
-      var pkg = new JpmConfig.PackageConfig(null, "0.1.0", "21");
+      var pkg = new JpmConfig.PackageConfig(null, "0.1.0", Constants.DEFAULT_JAVA_VERSION);
       config = new JpmConfig(pkg, new HashMap<>(), new HashMap<>(), new FmtConfig());
     }
     return config;

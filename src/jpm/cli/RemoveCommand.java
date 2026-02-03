@@ -19,7 +19,7 @@ public class RemoveCommand implements Callable<Integer> {
       // Load config
       var configFile = new File("jpm.toml");
       if (!configFile.exists()) {
-        System.err.println("Error: No jpm.toml found.");
+        CliErrorHandler.error("No jpm.toml found.");
         return 1;
       }
 
@@ -41,7 +41,7 @@ public class RemoveCommand implements Callable<Integer> {
       }
 
       if (keyToRemove == null) {
-        System.err.println("Error: Dependency '" + artifact + "' not found in jpm.toml");
+        CliErrorHandler.error("Dependency '" + artifact + "' not found in jpm.toml");
         return 1;
       }
 
@@ -65,8 +65,7 @@ public class RemoveCommand implements Callable<Integer> {
       return 0;
 
     } catch (Exception e) {
-      System.err.println("Error: " + e.getMessage());
-      e.printStackTrace();
+      CliErrorHandler.error(e.getMessage());
       return 1;
     }
   }

@@ -11,34 +11,34 @@ import picocli.CommandLine.Command;
 @Command(name = "build", description = "Build the project")
 public class BuildCommand extends AbstractBuildCommand {
 
-    @Override
-    protected void validateProject() {
-        super.validateProject();
+  @Override
+  protected void validateProject() {
+    super.validateProject();
 
-        var sourceDir = getSourceDir();
-        if (!sourceDir.exists()) {
-            throw new ProjectValidationException("No " + ProjectPaths.SRC_DIR + "/ directory found");
-        }
+    var sourceDir = getSourceDir();
+    if (!sourceDir.exists()) {
+      throw new ProjectValidationException("No " + ProjectPaths.SRC_DIR + "/ directory found");
     }
+  }
 
-    @Override
-    protected Compiler.CompileResult compile() throws Exception {
-        var sourceDir = getSourceDir();
-        var outputDir = getOutputDir();
+  @Override
+  protected Compiler.CompileResult compile() throws Exception {
+    var sourceDir = getSourceDir();
+    var outputDir = getOutputDir();
 
-        var compiler = new Compiler();
-        var compilerArgs = profileConfig.getEffectiveCompilerArgs();
-        return compiler.compileWithArgs(sourceDir, outputDir, classpath, compilerArgs);
-    }
+    var compiler = new Compiler();
+    var compilerArgs = profileConfig.getEffectiveCompilerArgs();
+    return compiler.compile(sourceDir, outputDir, classpath, compilerArgs);
+  }
 
-    @Override
-    protected int execute() {
-        System.out.println("Build successful! Output in " + ProjectPaths.CLASSES_DIR + "/");
-        return 0;
-    }
+  @Override
+  protected int execute() {
+    System.out.println("Build successful! Output in " + ProjectPaths.CLASSES_DIR + "/");
+    return 0;
+  }
 
-    @Override
-    protected String getCommandName() {
-        return "build";
-    }
+  @Override
+  protected String getCommandName() {
+    return "build";
+  }
 }

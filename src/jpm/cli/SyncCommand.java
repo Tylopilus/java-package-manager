@@ -15,7 +15,7 @@ public class SyncCommand implements Callable<Integer> {
     try {
       var configFile = new File("jpm.toml");
       if (!configFile.exists()) {
-        System.err.println("Error: No jpm.toml found. Run 'jpm new <name>' first.");
+        CliErrorHandler.error("No jpm.toml found. Run 'jpm new <name>' first.");
         return 1;
       }
 
@@ -32,7 +32,7 @@ public class SyncCommand implements Callable<Integer> {
       return 0;
 
     } catch (IOException e) {
-      System.err.println("Error syncing IDE configuration: " + e.getMessage());
+      CliErrorHandler.error("Syncing IDE configuration", e);
       return 1;
     }
   }

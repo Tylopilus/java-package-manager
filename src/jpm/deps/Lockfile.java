@@ -119,8 +119,8 @@ public class Lockfile {
     for (var entry : dependencies) {
       var jarFile = new java.io.File(entry.path());
       if (jarFile.exists()) {
-        result.add(new ResolvedDependency(
-            entry.group(), entry.artifact(), entry.version(), jarFile));
+        result.add(
+            new ResolvedDependency(entry.group(), entry.artifact(), entry.version(), jarFile));
       }
     }
     return result;

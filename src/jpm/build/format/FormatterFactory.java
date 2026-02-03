@@ -14,30 +14,30 @@ import jpm.config.FmtConfig;
  */
 public final class FormatterFactory {
 
-    private FormatterFactory() {
-        // Utility class
-    }
+  private FormatterFactory() {
+    // Utility class
+  }
 
-    /**
-     * Creates a Palantir Formatter instance.
-     * The type parameter is ignored as Palantir is the only supported formatter.
-     *
-     * @param type ignored
-     * @return the Palantir Formatter implementation
-     */
-    public static Formatter create(String type) {
-        return new PalantirFormatter();
-    }
+  /**
+   * Creates a Palantir Formatter instance.
+   * The type parameter is ignored as Palantir is the only supported formatter.
+   *
+   * @param type ignored
+   * @return the Palantir Formatter implementation
+   */
+  public static Formatter create(String type) {
+    return new PalantirFormatter();
+  }
 
-    /**
-     * Creates a Palantir Formatter instance.
-     * The type and config parameters are largely ignored as Palantir is opinionated.
-     *
-     * @param type ignored
-     * @param config configuration (mostly ignored by Palantir)
-     * @return the Palantir Formatter implementation
-     */
-    public static Formatter create(String type, FmtConfig config) {
-        return new PalantirFormatter();
-    }
+  /**
+   * Creates a Palantir Formatter instance.
+   * The type and config parameters are largely ignored as Palantir is opinionated.
+   *
+   * @param type ignored
+   * @param config configuration (mostly ignored by Palantir)
+   * @return the Palantir Formatter implementation
+   */
+  public static Formatter create(String type, FmtConfig config) {
+    return new PalantirFormatter();
+  }
 }

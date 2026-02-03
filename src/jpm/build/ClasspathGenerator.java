@@ -2,11 +2,17 @@ package jpm.build;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import jpm.config.JpmConfig;
 import jpm.deps.CacheManager;
 import jpm.deps.DependencyResolver;
 import jpm.utils.FileUtils;
+import jpm.utils.XmlUtils;
 
+/**
+ * Generates Eclipse .classpath file with resolved dependencies.
+ * Uses centralized XML utilities for consistent formatting.
+ */
 public class ClasspathGenerator {
 
   private final CacheManager cacheManager;
@@ -17,40 +23,17 @@ public class ClasspathGenerator {
 
   public void generateClasspath(JpmConfig config, File projectDir) throws IOException {
     var classpathFile = new File(projectDir, ".classpath");
-
-    var xml = new StringBuilder();
-    xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-    xml.append("<classpath>\n");
-
-    // Source directory
-    xml.append("\t<classpathentry kind=\"src\" path=\"src\"/>\n");
-
-    // Output directory
-    xml.append("\t<classpathentry kind=\"output\" path=\"target/classes\"/>\n");
-
-    // JRE container
     var javaVersion = config.package_().javaVersion();
-    if (javaVersion != null && !javaVersion.isEmpty()) {
-      xml.append(
-              "\t<classpathentry kind=\"con\""
-                  + " path=\"org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-")
-          .append(javaVersion)
-          .append("\"/>\n");
-    } else {
-      xml.append(
-          "\t<classpathentry kind=\"con\" path=\"org.eclipse.jdt.launching.JRE_CONTAINER\"/>\n");
-    }
+    var dependencyPaths = new ArrayList<String>();
 
-    // Dependency libraries (including transitive dependencies)
+    // Resolve and add dependencies
     if (!config.dependencies().isEmpty()) {
       try {
         var resolver = new DependencyResolver();
         var deps = resolver.resolveWithLockfile(projectDir, config, false);
         for (var dep : deps) {
           if (dep.jarFile().exists()) {
-            xml.append("\t<classpathentry kind=\"lib\" path=\"")
-                .append(escapeXml(dep.jarFile().getAbsolutePath()))
-                .append("\"/>\n");
+            dependencyPaths.add(dep.jarFile().getAbsolutePath());
           }
         }
       } catch (Exception e) {
@@ -64,25 +47,14 @@ public class ClasspathGenerator {
 
             var jarFile = cacheManager.getJarFile(groupId, artifactId, version);
             if (jarFile.exists()) {
-              xml.append("\t<classpathentry kind=\"lib\" path=\"")
-                  .append(escapeXml(jarFile.getAbsolutePath()))
-                  .append("\"/>\n");
+              dependencyPaths.add(jarFile.getAbsolutePath());
             }
           }
         }
       }
     }
 
-    xml.append("</classpath>\n");
-
-    FileUtils.writeFile(classpathFile, xml.toString());
-  }
-
-  private String escapeXml(String text) {
-    return text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace("\"", "&quot;")
-        .replace("'", "&apos;");
+    String classpathXml = XmlUtils.generateClasspathFile(javaVersion, dependencyPaths);
+    FileUtils.writeFile(classpathFile, classpathXml);
   }
 }

@@ -11,6 +11,7 @@ import jpm.build.format.FormatterException;
 import jpm.build.format.FormatterFactory;
 import jpm.build.format.PalantirFormatter;
 import jpm.config.FmtConfig;
+import jpm.utils.FileCollector;
 import jpm.utils.FileUtils;
 
 /**
@@ -44,8 +45,7 @@ public class CodeFormatter {
    * @throws IOException if file operations fail
    */
   public FormatResult formatPath(File path, boolean checkOnly) throws IOException {
-    var javaFiles = new ArrayList<File>();
-    collectJavaFiles(path, javaFiles);
+    var javaFiles = FileCollector.findFilesByExtension(path, ".java", file -> !shouldSkip(file));
 
     var totalFiles = 0;
     var formattedFiles = 0;
@@ -136,23 +136,6 @@ public class CodeFormatter {
    */
   public String getFormatterInfo() {
     return formatter.getName() + " " + formatter.getVersion();
-  }
-
-  private void collectJavaFiles(File file, List<File> javaFiles) {
-    if (shouldSkip(file)) {
-      return;
-    }
-
-    if (file.isDirectory()) {
-      var children = file.listFiles();
-      if (children != null) {
-        for (var child : children) {
-          collectJavaFiles(child, javaFiles);
-        }
-      }
-    } else if (file.getName().endsWith(".java")) {
-      javaFiles.add(file);
-    }
   }
 
   private boolean shouldSkip(File file) {

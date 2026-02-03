@@ -9,10 +9,11 @@ import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.List;
 import jpm.utils.FileUtils;
+import jpm.utils.XmlUtils;
 
 /**
  * Runs JUnit 5 tests and generates reports.
- * Uses JUnit Platform Launcher API to discover and execute tests.
+ * Uses reflection to detect and execute JUnit tests without compile-time JUnit dependency.
  * Generates JUnit XML report for CI integration.
  */
 public class TestRunner {
@@ -23,7 +24,7 @@ public class TestRunner {
    * @param testOutputDir Directory containing compiled test classes
    * @param classpath Full classpath for test execution
    * @param filter Optional filter pattern for test class names
-   * @param parallel Whether to run tests in parallel
+   * @param parallel Whether to run tests in parallel (currently unused)
    * @param quiet Minimal output mode
    * @param reportDir Directory for test reports
    * @return TestRunResult with statistics
@@ -46,31 +47,25 @@ public class TestRunner {
 
     try {
       // Create class loader for test classes including classpath dependencies
-      var cpEntries = classpath.split(File.pathSeparator);
-      var urls = new ArrayList<URL>();
-      urls.add(testOutputDir.toURI().toURL());
-      for (var entry : cpEntries) {
-        if (!entry.isEmpty()) {
-          urls.add(new File(entry).toURI().toURL());
-        }
-      }
-      var classLoader = new URLClassLoader(urls.toArray(new URL[0]), TestRunner.class.getClassLoader());
+      var urls = buildClasspathUrls(testOutputDir, classpath);
+      var classLoader = new URLClassLoader(urls.toArray(new URL[0]), getClass().getClassLoader());
 
       // Find all test classes
-      var testClasses = findTestClasses(testOutputDir, testOutputDir, filter);
+      var testClassNames = findTestClasses(testOutputDir, filter);
 
-      if (testClasses.isEmpty()) {
+      if (testClassNames.isEmpty()) {
         return new TestRunResult(0, 0, 0, 0, testResults);
       }
 
-      // Run each test class
-      for (var testClassName : testClasses) {
-        try {
-          var clazz = Class.forName(testClassName, true, classLoader);
+      if (!quiet) {
+        System.out.println("Found " + testClassNames.size() + " test class(es)");
+        System.out.println();
+      }
 
-          // Simple test execution (without full JUnit Platform)
-          // In a real implementation, we'd use JUnit Platform Launcher
-          // For now, we'll use reflection to find and run @Test methods
+      // Load and run each test class
+      for (var className : testClassNames) {
+        try {
+          var clazz = Class.forName(className, true, classLoader);
           var result = runTestClass(clazz, quiet);
 
           totalTests += result.total();
@@ -78,10 +73,9 @@ public class TestRunner {
           failedTests += result.failed();
           skippedTests += result.skipped();
           testResults.addAll(result.details());
-
         } catch (ClassNotFoundException e) {
           if (!quiet) {
-            System.err.println("Warning: Could not load test class: " + testClassName);
+            System.err.println("Warning: Could not load test class: " + className);
           }
         }
       }
@@ -90,37 +84,65 @@ public class TestRunner {
       generateJUnitReport(
           reportDir, testResults, totalTests, passedTests, failedTests, skippedTests);
 
-    } catch (Exception e) {
-      throw new IOException("Failed to run tests: " + e.getMessage(), e);
-    }
+      return new TestRunResult(totalTests, passedTests, failedTests, skippedTests, testResults);
 
-    return new TestRunResult(totalTests, passedTests, failedTests, skippedTests, testResults);
+    } catch (Exception e) {
+      throw new IOException("Test execution failed: " + e.getMessage(), e);
+    }
   }
 
   /**
-   * Finds all test classes in the output directory.
+   * Builds the list of URLs for the classloader.
    */
-  private List<String> findTestClasses(File rootDir, File currentDir, String filter) {
-    var classes = new ArrayList<String>();
-    var files = currentDir.listFiles();
+  private List<URL> buildClasspathUrls(File testOutputDir, String classpath) throws IOException {
+    var urls = new ArrayList<URL>();
+    urls.add(testOutputDir.toURI().toURL());
 
-    if (files == null) return classes;
-
-    for (var file : files) {
-      if (file.isDirectory()) {
-        classes.addAll(findTestClasses(rootDir, file, filter));
-      } else if (file.getName().endsWith(".class")) {
-        // Convert path to class name
-        var className = getClassName(rootDir, file);
-
-        // Apply filter if specified
-        if (filter == null || className.matches(filter.replace("*", ".*"))) {
-          classes.add(className);
+    if (classpath != null && !classpath.isEmpty()) {
+      for (var entry : classpath.split(File.pathSeparator)) {
+        if (!entry.isEmpty()) {
+          var file = new File(entry);
+          if (file.exists()) {
+            urls.add(file.toURI().toURL());
+          }
         }
       }
     }
 
-    return classes;
+    return urls;
+  }
+
+  /**
+   * Finds all test class names in the test output directory.
+   */
+  private List<String> findTestClasses(File testOutputDir, String filter) {
+    var classNames = new ArrayList<String>();
+
+    if (!testOutputDir.exists()) {
+      return classNames;
+    }
+
+    findTestClassesRecursive(testOutputDir, testOutputDir, filter, classNames);
+    return classNames;
+  }
+
+  private void findTestClassesRecursive(
+      File rootDir, File currentDir, String filter, List<String> classNames) {
+    var files = currentDir.listFiles();
+    if (files == null) return;
+
+    for (var file : files) {
+      if (file.isDirectory()) {
+        findTestClassesRecursive(rootDir, file, filter, classNames);
+      } else if (file.getName().endsWith(".class")) {
+        var className = getClassName(rootDir, file);
+
+        // Apply filter if specified
+        if (filter == null || className.matches(filter.replace("*", ".*"))) {
+          classNames.add(className);
+        }
+      }
+    }
   }
 
   private String getClassName(File rootDir, File classFile) {
@@ -130,8 +152,7 @@ public class TestRunner {
   }
 
   /**
-   * Runs a single test class using reflection to find @Test methods.
-   * Simplified implementation - in production would use JUnit Platform.
+   * Runs all tests in a single test class using reflection.
    */
   private ClassResult runTestClass(Class<?> clazz, boolean quiet) {
     var total = 0;
@@ -140,52 +161,87 @@ public class TestRunner {
     var skipped = 0;
     var details = new ArrayList<TestResult>();
 
-    // Find all test methods (methods annotated with @Test)
     for (var method : clazz.getDeclaredMethods()) {
       if (isTestMethod(method)) {
         total++;
+        var startTime = System.currentTimeMillis();
 
         try {
-          var constructor = clazz.getDeclaredConstructor();
-          constructor.setAccessible(true);
-          var instance = constructor.newInstance();
-          method.setAccessible(true);
+          // Check for @Disabled annotation
+          if (hasAnnotation(method, "org.junit.jupiter.api.Disabled")) {
+            skipped++;
+            details.add(new TestResult(clazz.getName() + "#" + method.getName(), "SKIPPED", 0));
+            continue;
+          }
+
+          // Create instance and run test
+          var instance = createTestInstance(clazz);
+          runBeforeEach(clazz, instance);
           method.invoke(instance);
+          runAfterEach(clazz, instance);
+
           passed++;
+          var duration = System.currentTimeMillis() - startTime;
+          details.add(new TestResult(clazz.getName() + "#" + method.getName(), "PASSED", duration));
 
           if (!quiet) {
             System.out.println("  ✓ " + clazz.getSimpleName() + "." + method.getName());
           }
 
-          details.add(new TestResult(clazz.getName() + "#" + method.getName(), "PASSED", 0, null));
+        } catch (Exception e) {
+          failed++;
+          var duration = System.currentTimeMillis() - startTime;
+          var cause = e.getCause() != null ? e.getCause() : e;
 
-          } catch (Exception e) {
-            failed++;
-            var cause = e.getCause() != null ? e.getCause() : e;
+          details.add(new TestResult(
+              clazz.getName() + "#" + method.getName(), "FAILED", duration, cause.getMessage()));
 
-            if (!quiet) {
-              System.out.println("  ✗ " + clazz.getSimpleName() + "." + method.getName());
-              System.out.println("    " + cause.getMessage());
-              cause.printStackTrace(System.out);
-            }
-
-            details.add(new TestResult(
-                clazz.getName() + "#" + method.getName(),
-                "FAILED",
-                0,
-                cause.getMessage()));
+          if (!quiet) {
+            System.err.println("  ✗ " + clazz.getSimpleName() + "." + method.getName());
+            System.err.println("    " + cause.getMessage());
           }
-
+        }
       }
     }
 
     return new ClassResult(total, passed, failed, skipped, details);
   }
 
+  private Object createTestInstance(Class<?> clazz) throws Exception {
+    var constructor = clazz.getDeclaredConstructor();
+    constructor.setAccessible(true);
+    return constructor.newInstance();
+  }
+
+  private void runBeforeEach(Class<?> clazz, Object instance) throws Exception {
+    for (var method : clazz.getDeclaredMethods()) {
+      if (hasAnnotation(method, "org.junit.jupiter.api.BeforeEach")) {
+        method.setAccessible(true);
+        method.invoke(instance);
+      }
+    }
+  }
+
+  private void runAfterEach(Class<?> clazz, Object instance) throws Exception {
+    for (var method : clazz.getDeclaredMethods()) {
+      if (hasAnnotation(method, "org.junit.jupiter.api.AfterEach")) {
+        method.setAccessible(true);
+        method.invoke(instance);
+      }
+    }
+  }
+
+  /**
+   * Checks if a method has a specific annotation by name.
+   * Uses string comparison to avoid compile-time dependency on JUnit.
+   */
   private boolean isTestMethod(java.lang.reflect.Method method) {
-    // Check for JUnit 5 @Test annotation
+    return hasAnnotation(method, "org.junit.jupiter.api.Test");
+  }
+
+  private boolean hasAnnotation(java.lang.reflect.Method method, String annotationName) {
     for (var annotation : method.getAnnotations()) {
-      if (annotation.annotationType().getName().equals("org.junit.jupiter.api.Test")) {
+      if (annotation.annotationType().getName().equals(annotationName)) {
         return true;
       }
     }
@@ -193,7 +249,7 @@ public class TestRunner {
   }
 
   /**
-   * Generates JUnit XML report in standard format for CI integration.
+   * Generates JUnit XML report using XmlUtils.
    */
   private void generateJUnitReport(
       File reportDir, List<TestResult> results, int total, int passed, int failed, int skipped)
@@ -202,46 +258,18 @@ public class TestRunner {
     FileUtils.ensureDirectory(reportDir);
     var reportFile = new File(reportDir, "jpm-test-report.xml");
 
-    try (var writer = new PrintWriter(new FileWriter(reportFile))) {
-      writer.println("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-      writer.println("<testsuites>");
-      writer.printf(
-          "  <testsuite name=\"jpm-tests\" tests=\"%d\" failures=\"%d\" skipped=\"%d\""
-              + " time=\"0.0\">%n",
-          total, failed, skipped);
-
-      for (var result : results) {
-        var parts = result.name().split("#");
-        var className = parts[0];
-        var methodName = parts.length > 1 ? parts[1] : "test";
-
-        writer.printf(
-            "    <testcase classname=\"%s\" name=\"%s\" time=\"%.3f\">%n",
-            className, methodName, result.time() / 1000.0);
-
-        if (result.status().equals("FAILED")) {
-          writer.printf(
-              "      <failure message=\"%s\"/>%n",
-              escapeXml(result.errorMessage() != null ? result.errorMessage() : "Test failed"));
-        } else if (result.status().equals("SKIPPED")) {
-          writer.println("      <skipped/>");
-        }
-
-        writer.println("    </testcase>");
-      }
-
-      writer.println("  </testsuite>");
-      writer.println("</testsuites>");
+    // Convert to XmlUtils format
+    var xmlResults = new ArrayList<XmlUtils.TestResult>();
+    for (var result : results) {
+      xmlResults.add(new XmlUtils.TestResult(
+          result.name(), result.status(), result.time(), result.errorMessage()));
     }
-  }
 
-  private String escapeXml(String text) {
-    if (text == null) return "";
-    return text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace("\"", "&quot;")
-        .replace("'", "&apos;");
+    var xmlContent = XmlUtils.generateJUnitReport("jpm-tests", total, failed, skipped, xmlResults);
+
+    try (var writer = new PrintWriter(new FileWriter(reportFile))) {
+      writer.print(xmlContent);
+    }
   }
 
   /**
@@ -253,7 +281,11 @@ public class TestRunner {
   /**
    * Individual test result.
    */
-  public record TestResult(String name, String status, long time, String errorMessage) {}
+  public record TestResult(String name, String status, long time, String errorMessage) {
+    public TestResult(String name, String status, long time) {
+      this(name, status, time, null);
+    }
+  }
 
   /**
    * Overall test run result.

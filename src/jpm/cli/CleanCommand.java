@@ -24,7 +24,7 @@ public class CleanCommand implements Callable<Integer> {
       return 0;
 
     } catch (IOException e) {
-      System.err.println("Error cleaning: " + e.getMessage());
+      CliErrorHandler.error("Cleaning", e);
       return 1;
     }
   }

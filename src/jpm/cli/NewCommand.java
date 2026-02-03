@@ -7,7 +7,9 @@ import jpm.config.ConfigParser;
 import jpm.config.FmtConfig;
 import jpm.config.JpmConfig;
 import jpm.config.ProjectPaths;
+import jpm.utils.Constants;
 import jpm.utils.FileUtils;
+import jpm.utils.XmlUtils;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 
@@ -22,7 +24,7 @@ public class NewCommand implements Callable<Integer> {
       var projectDir = new File(projectName);
 
       if (projectDir.exists()) {
-        System.err.println("Error: Directory '" + projectName + "' already exists");
+        CliErrorHandler.error("Directory '" + projectName + "' already exists");
         return 1;
       }
 
@@ -32,7 +34,7 @@ public class NewCommand implements Callable<Integer> {
       FileUtils.ensureDirectory(new File(projectDir, ProjectPaths.SRC_DIR));
 
       // Create jpm.toml
-      var pkg = new JpmConfig.PackageConfig(projectName, "0.1.0", "21");
+      var pkg = new JpmConfig.PackageConfig(projectName, "0.1.0", Constants.DEFAULT_JAVA_VERSION);
       var config =
           new JpmConfig(pkg, new java.util.HashMap<>(), new java.util.HashMap<>(), new FmtConfig());
 
@@ -47,13 +49,13 @@ public class NewCommand implements Callable<Integer> {
       System.out.println("  Created " + ProjectPaths.SRC_DIR + "/Main.java");
 
       // Create .project file (required for IDE integration)
-      var projectXml = generateProjectFile(projectName);
+      var projectXml = XmlUtils.generateProjectFile(projectName);
       var projectFile = new File(projectDir, ProjectPaths.DOT_PROJECT);
       FileUtils.writeFile(projectFile, projectXml);
       System.out.println("  Created " + ProjectPaths.DOT_PROJECT);
 
       // Create initial .classpath file
-      var classpathXml = generateClasspath(config.package_().javaVersion());
+      var classpathXml = XmlUtils.generateMinimalClasspathFile(config.package_().javaVersion());
       var classpathFile = new File(projectDir, ProjectPaths.DOT_CLASSPATH);
       FileUtils.writeFile(classpathFile, classpathXml);
       System.out.println("  Created " + ProjectPaths.DOT_CLASSPATH);
@@ -71,7 +73,7 @@ public class NewCommand implements Callable<Integer> {
       return 0;
 
     } catch (IOException e) {
-      System.err.println("Error creating project: " + e.getMessage());
+      CliErrorHandler.error("Creating project", e);
       return 1;
     }
   }
@@ -84,39 +86,6 @@ public class NewCommand implements Callable<Integer> {
             }
         }
         """.formatted(projectName);
-  }
-
-  private String generateProjectFile(String projectName) {
-    return """
-        <?xml version="1.0" encoding="UTF-8"?>
-        <projectDescription>
-        	<name>%s</name>
-        	<comment></comment>
-        	<projects>
-        	</projects>
-        	<buildSpec>
-        		<buildCommand>
-        			<name>org.eclipse.jdt.core.javabuilder</name>
-        			<arguments>
-        			</arguments>
-        		</buildCommand>
-        	</buildSpec>
-        	<natures>
-        		<nature>org.eclipse.jdt.core.javanature</nature>
-        	</natures>
-        </projectDescription>
-        """.formatted(projectName);
-  }
-
-  private String generateClasspath(String javaVersion) {
-    return """
-        <?xml version="1.0" encoding="UTF-8"?>
-        <classpath>
-        	<classpathentry kind="src" path="src"/>
-        	<classpathentry kind="output" path="target/classes"/>
-        	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-%s"/>
-        </classpath>
-        """.formatted(javaVersion);
   }
 
   private String generateGitignore() {

@@ -7,11 +7,11 @@ package jpm.cli;
  */
 public class ProjectValidationException extends RuntimeException {
 
-    public ProjectValidationException(String message) {
-        super(message);
-    }
+  public ProjectValidationException(String message) {
+    super(message);
+  }
 
-    public ProjectValidationException(String message, Throwable cause) {
-        super(message, cause);
-    }
+  public ProjectValidationException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }

@@ -2,29 +2,53 @@ package jpm.build;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
+import jpm.utils.FileCollector;
+import jpm.utils.ProcessExecutor;
 
+/**
+ * Compiles Java source files using the system javac compiler.
+ * Provides a clean interface for compiling with configurable classpath and compiler arguments.
+ */
 public class Compiler {
 
   /**
    * Record representing the result of a compilation operation.
-   * Uses Java 16+ records for concise immutable data classes.
    */
-  public record CompileResult(boolean success, String output, int exitCode) {}
+  public record CompileResult(boolean success, String message, int exitCode) {}
 
+  /**
+   * Compiles all Java source files in the source directory.
+   *
+   * @param sourceDir directory containing .java files
+   * @param outputDir directory for compiled .class files
+   * @param classpath dependency classpath (can be null or empty)
+   * @return CompileResult with success status and exit code
+   * @throws IOException if compilation fails
+   */
   public CompileResult compile(File sourceDir, File outputDir, String classpath)
       throws IOException {
-    return compileWithArgs(sourceDir, outputDir, classpath, List.of());
+    return compile(sourceDir, outputDir, classpath, Collections.emptyList());
   }
 
-  public CompileResult compileWithArgs(
+  /**
+   * Compiles with additional compiler arguments.
+   *
+   * @param sourceDir directory containing .java files
+   * @param outputDir directory for compiled .class files
+   * @param classpath dependency classpath (can be null or empty)
+   * @param compilerArgs additional arguments for javac (e.g., --release, -g)
+   * @return CompileResult with success status and exit code
+   * @throws IOException if compilation fails
+   */
+  public CompileResult compile(
       File sourceDir, File outputDir, String classpath, List<String> compilerArgs)
       throws IOException {
+
     // Find all Java source files
-    var sourceFiles = findSourceFiles(sourceDir);
+    var sourceFiles = FileCollector.findRelativePathsByExtension(sourceDir, ".java");
 
     if (sourceFiles.isEmpty()) {
       return new CompileResult(false, "No Java source files found in " + sourceDir, 1);
@@ -33,7 +57,17 @@ public class Compiler {
     // Ensure output directory exists
     outputDir.mkdirs();
 
-    // Build javac command
+    // Build and execute javac command
+    var command = buildJavacCommand(outputDir, classpath, compilerArgs, sourceFiles);
+    return executeJavac(command, sourceDir);
+  }
+
+  /**
+   * Builds the javac command with all necessary arguments.
+   */
+  private List<String> buildJavacCommand(
+      File outputDir, String classpath, List<String> compilerArgs, List<String> sourceFiles) {
+
     var command = new ArrayList<String>();
     command.add("javac");
     command.add("-d");
@@ -50,35 +84,14 @@ public class Compiler {
 
     command.addAll(sourceFiles);
 
-    // Execute
-    var pb = new ProcessBuilder(command);
-    pb.inheritIO();
-    pb.directory(sourceDir);
-
-    var process = pb.start();
-
-    try {
-      var exitCode = process.waitFor();
-      return new CompileResult(exitCode == 0, "", exitCode);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      return new CompileResult(false, "Compilation interrupted", 1);
-    }
+    return command;
   }
 
-  private List<String> findSourceFiles(File sourceDir) throws IOException {
-    if (!sourceDir.exists()) {
-      return new ArrayList<>();
-    }
-
-    var sourcePath = sourceDir.toPath().toAbsolutePath().normalize();
-
-    try (var stream = Files.walk(sourcePath)) {
-      return stream
-          .filter(Files::isRegularFile)
-          .filter(p -> p.toString().endsWith(".java"))
-          .map(p -> sourcePath.relativize(p).toString())
-          .collect(Collectors.toList());
-    }
+  /**
+   * Executes the javac process and returns the result.
+   */
+  private CompileResult executeJavac(List<String> command, File workingDir) throws IOException {
+    var result = ProcessExecutor.execute(command, workingDir);
+    return new CompileResult(result.success(), "", result.exitCode());
   }
 }

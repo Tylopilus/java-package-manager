@@ -2,9 +2,15 @@ package jpm.build;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import jpm.config.JpmConfig;
 import jpm.utils.FileUtils;
+import jpm.utils.XmlUtils;
 
+/**
+ * Generates Eclipse IDE configuration files (.project and .classpath).
+ * Uses centralized XML utilities for consistent file generation.
+ */
 public class IdeFileGenerator {
 
   public static boolean shouldGenerateIdeFiles(File projectDir) {
@@ -39,23 +45,7 @@ public class IdeFileGenerator {
       projectName = projectDir.getName();
     }
 
-    String projectXml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + "<projectDescription>\n"
-        + "\t<name>"
-        + escapeXml(projectName) + "</name>\n" + "\t<comment></comment>\n"
-        + "\t<projects>\n"
-        + "\t</projects>\n"
-        + "\t<buildSpec>\n"
-        + "\t\t<buildCommand>\n"
-        + "\t\t\t<name>org.eclipse.jdt.core.javabuilder</name>\n"
-        + "\t\t\t<arguments>\n"
-        + "\t\t\t</arguments>\n"
-        + "\t\t</buildCommand>\n"
-        + "\t</buildSpec>\n"
-        + "\t<natures>\n"
-        + "\t\t<nature>org.eclipse.jdt.core.javanature</nature>\n"
-        + "\t</natures>\n"
-        + "</projectDescription>\n";
-
+    String projectXml = XmlUtils.generateProjectFile(projectName);
     FileUtils.writeFile(projectFile, projectXml);
   }
 
@@ -63,28 +53,7 @@ public class IdeFileGenerator {
       throws IOException {
     File classpathFile = new File(projectDir, ".classpath");
 
-    StringBuilder xml = new StringBuilder();
-    xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-    xml.append("<classpath>\n");
-
-    // Source directory
-    xml.append("\t<classpathentry kind=\"src\" path=\"src\"/>\n");
-
-    // Output directory
-    xml.append("\t<classpathentry kind=\"output\" path=\"target/classes\"/>\n");
-
-    // JRE container
-    String javaVersion = config.package_().javaVersion();
-    if (javaVersion != null && !javaVersion.isEmpty()) {
-      xml.append(
-              "\t<classpathentry kind=\"con\""
-                  + " path=\"org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-")
-          .append(javaVersion)
-          .append("\"/>\n");
-    } else {
-      xml.append(
-          "\t<classpathentry kind=\"con\" path=\"org.eclipse.jdt.launching.JRE_CONTAINER\"/>\n");
-    }
+    var dependencyPaths = new ArrayList<String>();
 
     // Add dependencies from classpath
     if (classpath != null && !classpath.isEmpty()) {
@@ -93,17 +62,16 @@ public class IdeFileGenerator {
         if (!entry.isEmpty()) {
           File jarFile = new File(entry);
           if (jarFile.exists()) {
-            xml.append("\t<classpathentry kind=\"lib\" path=\"")
-                .append(escapeXml(jarFile.getAbsolutePath()))
-                .append("\"/>\n");
+            dependencyPaths.add(jarFile.getAbsolutePath());
           }
         }
       }
     }
 
-    xml.append("</classpath>\n");
+    String javaVersion = config.package_().javaVersion();
+    String classpathXml = XmlUtils.generateClasspathFile(javaVersion, dependencyPaths);
 
-    FileUtils.writeFile(classpathFile, xml.toString());
+    FileUtils.writeFile(classpathFile, classpathXml);
   }
 
   public static void generateClasspathFileWithDeps(File projectDir, JpmConfig config)
@@ -111,14 +79,5 @@ public class IdeFileGenerator {
     // Use ClasspathGenerator for full dependency resolution
     ClasspathGenerator generator = new ClasspathGenerator();
     generator.generateClasspath(config, projectDir);
-  }
-
-  private static String escapeXml(String text) {
-    if (text == null) return "";
-    return text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace("\"", "&quot;")
-        .replace("'", "&apos;");
   }
 }

@@ -4,10 +4,9 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import jpm.utils.Constants;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-
-import jpm.config.FmtConfig;
 
 /**
  * Unit tests for JpmConfig record.
@@ -32,14 +31,14 @@ class JpmConfigTest {
   @Test
   @DisplayName("Should create config with custom values")
   void shouldCreateWithCustomValues() {
-    var pkg = new JpmConfig.PackageConfig("my-app", "1.0.0", "21");
+    var pkg = new JpmConfig.PackageConfig("my-app", "1.0.0", Constants.DEFAULT_JAVA_VERSION);
     var deps = Map.of("com.example:lib", "1.0.0");
 
     var config = new JpmConfig(pkg, new HashMap<>(deps), new HashMap<>(), new FmtConfig());
 
     assertEquals("my-app", config.package_().name());
     assertEquals("1.0.0", config.package_().version());
-    assertEquals("21", config.package_().javaVersion());
+    assertEquals(Constants.DEFAULT_JAVA_VERSION, config.package_().javaVersion());
     assertEquals("1.0.0", config.dependencies().get("com.example:lib"));
   }
 
@@ -84,7 +83,7 @@ class JpmConfigTest {
     var original = new JpmConfig();
     original.addDependency("com.example:lib", "1.0.0");
 
-    var newPkg = new JpmConfig.PackageConfig("new-app", "2.0.0", "21");
+    var newPkg = new JpmConfig.PackageConfig("new-app", "2.0.0", Constants.DEFAULT_JAVA_VERSION);
     var updated = original.withPackage(newPkg);
 
     // Original unchanged
@@ -118,7 +117,8 @@ class JpmConfigTest {
     var config1 = new JpmConfig();
     config1.addDependency("com.example:lib", "1.0.0");
 
-    var config2 = config1.withPackage(new JpmConfig.PackageConfig("app2", "1.0.0", "21"));
+    var config2 = config1.withPackage(
+        new JpmConfig.PackageConfig("app2", "1.0.0", Constants.DEFAULT_JAVA_VERSION));
 
     // Modify config2's dependencies
     config2.addDependency("com.other:lib", "2.0.0");

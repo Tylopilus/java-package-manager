@@ -56,8 +56,8 @@ public class DependencyResolver {
       if (existing != null && version != null) {
         if (Version.isNewer(version, existing.version())) {
           // Newer version, re-resolve with newer version
-          Logger.info(
-              "    Resolving version conflict: " + key + " " + existing.version() + " -> " + version);
+          Logger.info("    Resolving version conflict: " + key + " " + existing.version() + " -> "
+              + version);
           resolvedDeps.remove(key);
           resolvedArtifacts.remove(key);
         } else {
@@ -139,6 +139,4 @@ public class DependencyResolver {
 
     return deps;
   }
-
-
 }

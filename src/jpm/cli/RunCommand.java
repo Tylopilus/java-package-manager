@@ -13,50 +13,45 @@ import picocli.CommandLine.Parameters;
 @Command(name = "run", description = "Build and run the project")
 public class RunCommand extends AbstractBuildCommand {
 
-    @Parameters(arity = "0..*", description = "Arguments to pass to main class")
-    private String[] args;
+  @Parameters(arity = "0..*", description = "Arguments to pass to main class")
+  private String[] args;
 
-    @Override
-    protected void validateProject() {
-        super.validateProject();
+  @Override
+  protected void validateProject() {
+    super.validateProject();
 
-        var sourceDir = getSourceDir();
-        if (!sourceDir.exists()) {
-            throw new ProjectValidationException("No " + ProjectPaths.SRC_DIR + "/ directory found");
-        }
+    var sourceDir = getSourceDir();
+    if (!sourceDir.exists()) {
+      throw new ProjectValidationException("No " + ProjectPaths.SRC_DIR + "/ directory found");
     }
+  }
 
-    @Override
-    protected Compiler.CompileResult compile() throws Exception {
-        var sourceDir = getSourceDir();
-        var outputDir = getOutputDir();
+  @Override
+  protected Compiler.CompileResult compile() throws Exception {
+    var sourceDir = getSourceDir();
+    var outputDir = getOutputDir();
 
-        var compiler = new Compiler();
-        var compilerArgs = profileConfig.getEffectiveCompilerArgs();
-        return compiler.compileWithArgs(sourceDir, outputDir, classpath, compilerArgs);
-    }
+    var compiler = new Compiler();
+    var compilerArgs = profileConfig.getEffectiveCompilerArgs();
+    return compiler.compile(sourceDir, outputDir, classpath, compilerArgs);
+  }
 
-    @Override
-    protected int execute() throws Exception {
-        System.out.println("Running...\n");
+  @Override
+  protected int execute() throws Exception {
+    System.out.println("Running...\n");
 
-        var runner = new Runner();
-        var mainClass = "Main";
-        var jvmArgs = profileConfig.getEffectiveJvmArgs();
-        var outputDir = getOutputDir();
+    var runner = new Runner();
+    var mainClass = "Main";
+    var jvmArgs = profileConfig.getEffectiveJvmArgs();
+    var outputDir = getOutputDir();
 
-        Runner.RunResult runResult;
-        if (args != null && args.length > 0) {
-            runResult = runner.runWithArgsAndJvmArgs(mainClass, outputDir, classpath, args, jvmArgs);
-        } else {
-            runResult = runner.runWithJvmArgs(mainClass, outputDir, classpath, jvmArgs);
-        }
+    Runner.RunResult runResult = runner.run(mainClass, outputDir, classpath, jvmArgs, args);
 
-        return runResult.exitCode();
-    }
+    return runResult.exitCode();
+  }
 
-    @Override
-    protected String getCommandName() {
-        return "run";
-    }
+  @Override
+  protected String getCommandName() {
+    return "run";
+  }
 }

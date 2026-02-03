@@ -77,7 +77,7 @@ public class FormatCommand implements Callable<Integer> {
           orgImports != null ? orgImports : fmtConfig.organizeImports(),
           fmtConfig.skipPatterns(),
           "palantir" // Always force Palantir
-      );
+          );
 
       var formatter = new CodeFormatter(fmtConfig);
 
@@ -96,7 +96,7 @@ public class FormatCommand implements Callable<Integer> {
       for (var target : targets) {
         var file = new File(target);
         if (!file.exists()) {
-          System.err.println("Error: File or directory not found: " + target);
+          CliErrorHandler.error("File or directory not found: " + target);
           failedFiles++;
           continue;
         }
@@ -143,8 +143,7 @@ public class FormatCommand implements Callable<Integer> {
       return failedFiles > 0 ? 1 : 0;
 
     } catch (Exception e) {
-      System.err.println("Error formatting code: " + e.getMessage());
-      e.printStackTrace();
+      CliErrorHandler.error("Formatting code", e);
       return 1;
     }
   }
