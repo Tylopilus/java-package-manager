@@ -101,24 +101,6 @@ public final class XmlUtils {
   }
 
   /**
-   * Generates a minimal Eclipse .classpath file for a new project.
-   *
-   * @param javaVersion the Java version (e.g., "25")
-   * @return XML content for .classpath file
-   */
-  public static String generateMinimalClasspathFile(String javaVersion) {
-    var version = javaVersion != null ? javaVersion : Constants.DEFAULT_JAVA_VERSION;
-    return """
-        <?xml version="1.0" encoding="UTF-8"?>
-        <classpath>
-        	<classpathentry kind="src" path="src"/>
-        	<classpathentry kind="output" path="target/classes"/>
-        	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-%s"/>
-        </classpath>
-        """.formatted(version);
-  }
-
-  /**
    * Generates JUnit XML report content.
    *
    * @param suiteName the test suite name

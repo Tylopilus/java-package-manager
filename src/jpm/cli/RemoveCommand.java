@@ -2,9 +2,10 @@ package jpm.cli;
 
 import java.io.File;
 import java.util.concurrent.Callable;
-import jpm.build.ClasspathGenerator;
 import jpm.config.ConfigParser;
+import jpm.config.ProjectPaths;
 import jpm.deps.CacheManager;
+import jpm.utils.UserOutput;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 
@@ -17,33 +18,21 @@ public class RemoveCommand implements Callable<Integer> {
   public Integer call() {
     try {
       // Load config
-      var configFile = new File("jpm.toml");
-      if (!configFile.exists()) {
-        CliErrorHandler.error("No jpm.toml found.");
+      var config = CommandUtils.loadConfigOrFail();
+      if (config == null) {
         return 1;
       }
-
-      var config = ConfigParser.load(configFile);
+      var configFile = new File(ProjectPaths.CONFIG_FILE);
 
       // Find dependency to remove
-      String keyToRemove = null;
-      String groupId = null;
-
-      for (var key : config.dependencies().keySet()) {
-        var parts = key.split(":");
-        if (parts.length == 2) {
-          if (parts[1].equals(artifact) || key.equals(artifact)) {
-            keyToRemove = key;
-            groupId = parts[0];
-            break;
-          }
-        }
-      }
+      String keyToRemove = config.findDependencyKey(artifact);
 
       if (keyToRemove == null) {
         CliErrorHandler.error("Dependency '" + artifact + "' not found in jpm.toml");
         return 1;
       }
+
+      String groupId = keyToRemove.split(":")[0];
 
       // Remove from config
       var version = config.dependencies().get(keyToRemove);
@@ -54,13 +43,10 @@ public class RemoveCommand implements Callable<Integer> {
       var cacheManager = new CacheManager();
       cacheManager.cleanArtifact(groupId, artifact);
 
-      System.out.println("Removed " + keyToRemove + "=" + version);
+      UserOutput.info("Removed " + keyToRemove + "=" + version);
 
       // Auto-sync IDE configuration
-      System.out.println("Syncing IDE configuration...");
-      var generator = new ClasspathGenerator();
-      generator.generateClasspath(config, new File("."));
-      System.out.println("Updated .classpath file");
+      CommandUtils.syncIdeConfig(config);
 
       return 0;
 

@@ -2,6 +2,7 @@ package jpm.cli;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import jpm.utils.UserOutput;
 
 /**
  * Handles interactive prompts for dependency selection and confirmation.
@@ -19,7 +20,7 @@ public class DependencyPrompter {
       return true;
     }
 
-    System.out.print(message + " [Y/n]: ");
+    UserOutput.printNoLn(message + " [Y/n]: ");
     var response = readLine();
     if (response == null || response.isBlank()) {
       return true;
@@ -28,7 +29,7 @@ public class DependencyPrompter {
   }
 
   public int promptForSelection(int max) {
-    System.out.print("Select [1-" + max + "] or press Enter to cancel: ");
+    UserOutput.printNoLn("Select [1-" + max + "] or press Enter to cancel: ");
     var input = readLine();
 
     if (input == null || input.isBlank()) {
@@ -44,7 +45,7 @@ public class DependencyPrompter {
       // Fall through to error
     }
 
-    System.out.println("Invalid selection");
+    UserOutput.error("Invalid selection");
     return promptForSelection(max);
   }
 

@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import javax.xml.parsers.*;
 import jpm.utils.FileUtils;
+import jpm.utils.UserOutput;
 import org.w3c.dom.*;
 
 /**
@@ -48,7 +49,7 @@ public class ParentPomResolver {
       throws IOException {
     // Check depth limit
     if (depth > MAX_PARENT_DEPTH) {
-      System.err.println("  Warning: Parent POM chain exceeds maximum depth (" + MAX_PARENT_DEPTH
+      UserOutput.warn("  Warning: Parent POM chain exceeds maximum depth (" + MAX_PARENT_DEPTH
           + ") for " + groupId + ":" + artifactId + ":" + version);
       return null;
     }
@@ -56,7 +57,7 @@ public class ParentPomResolver {
     // Check for cycles
     String key = groupId + ":" + artifactId + ":" + version;
     if (visited.contains(key)) {
-      System.err.println("  Warning: Cyclic parent POM reference detected for " + key);
+      UserOutput.warn("  Warning: Cyclic parent POM reference detected for " + key);
       return null;
     }
     visited.add(key);
@@ -70,7 +71,7 @@ public class ParentPomResolver {
     // Download and parse the POM
     String pomContent = downloadParentPom(groupId, artifactId, version);
     if (pomContent == null) {
-      System.err.println("  Warning: Failed to download parent POM: " + key);
+      UserOutput.warn("  Warning: Failed to download parent POM: " + key);
       return null;
     }
 
@@ -95,14 +96,14 @@ public class ParentPomResolver {
       // Print timing on root call
       if (depth == 0 && parentPomsDownloaded > 0) {
         long elapsed = System.currentTimeMillis() - downloadStartTime;
-        System.out.println(
+        UserOutput.info(
             "  Downloaded " + parentPomsDownloaded + " parent POMs in " + elapsed + "ms");
       }
 
       return pomInfo;
 
     } catch (Exception e) {
-      System.err.println("  Warning: Failed to parse parent POM " + key + ": " + e.getMessage());
+      UserOutput.warn("  Warning: Failed to parse parent POM " + key + ": " + e.getMessage());
       return null;
     }
   }

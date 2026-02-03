@@ -3,6 +3,7 @@ package jpm.cli;
 import jpm.build.Compiler;
 import jpm.build.Runner;
 import jpm.config.ProjectPaths;
+import jpm.utils.UserOutput;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 
@@ -29,7 +30,7 @@ public class RunCommand extends AbstractBuildCommand {
 
   @Override
   protected int execute() throws Exception {
-    System.out.println("Running...\n");
+    UserOutput.info("Running...\n");
 
     var runner = new Runner();
     var mainClass = "Main";

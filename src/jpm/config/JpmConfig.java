@@ -38,6 +38,24 @@ public record JpmConfig(
   }
 
   /**
+   * Finds a dependency key (group:artifact) by artifact ID or full coordinate.
+   *
+   * @param query the artifact ID or group:artifact
+   * @return the matching key, or null if not found
+   */
+  public String findDependencyKey(String query) {
+    for (var key : dependencies.keySet()) {
+      var parts = key.split(":");
+      if (parts.length == 2) {
+        if (parts[1].equals(query) || key.equals(query)) {
+          return key;
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
    * Removes a dependency by artifact ID.
    *
    * @param artifactId the artifact ID to remove

@@ -6,13 +6,11 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
-import jpm.build.ClasspathGenerator;
 import jpm.config.ConfigParser;
 import jpm.config.ProjectPaths;
 import jpm.deps.DependencyResolver;
 import jpm.deps.MavenSearchClient;
-import jpm.utils.FileUtils;
-import jpm.utils.XmlUtils;
+import jpm.utils.UserOutput;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
@@ -38,17 +36,14 @@ public class AddCommand implements Callable<Integer> {
   @Override
   public Integer call() {
     try {
-      // Check for jpm.toml
-      var configFile = new File(ProjectPaths.CONFIG_FILE);
-      if (!configFile.exists()) {
-        CliErrorHandler.error(
-            "No " + ProjectPaths.CONFIG_FILE + " found. Run 'jpm new <name>' first.");
+      var config = CommandUtils.loadConfigOrFail();
+      if (config == null) {
         return 1;
       }
 
       var total = dependencies.size();
+      var configFile = new File(ProjectPaths.CONFIG_FILE);
 
-      var config = ConfigParser.loadOrCreate(configFile);
       var selectionService = new DependencySelectionService(
           new MavenSearchClient(),
           new DependencyPrompter(new BufferedReader(new InputStreamReader(System.in))),
@@ -64,7 +59,7 @@ public class AddCommand implements Callable<Integer> {
         var dep = dependencies.get(i);
 
         if (total > 1) {
-          System.out.println("\n[" + (i + 1) + "/" + total + "] Processing \"" + dep + "\"...");
+          UserOutput.info("\n[" + (i + 1) + "/" + total + "] Processing \"" + dep + "\"...");
         }
 
         var info = selectionService.resolveDependency(dep);
@@ -74,12 +69,12 @@ public class AddCommand implements Callable<Integer> {
       }
 
       if (depsToAdd.isEmpty()) {
-        System.out.println("\nNo dependencies to add.");
+        UserOutput.info("\nNo dependencies to add.");
         return 0;
       }
 
       // Phase 2: Resolve and add all dependencies
-      System.out.println("\nResolving " + depsToAdd.size() + " dependencies...");
+      UserOutput.info("\nResolving " + depsToAdd.size() + " dependencies...");
 
       var resolver = new DependencyResolver();
       var totalResolved = 0;
@@ -95,33 +90,25 @@ public class AddCommand implements Callable<Integer> {
             // Add to config
             config.addDependency(ga, info.version());
             totalResolved += resolved.size();
-            System.out.println(
+            UserOutput.info(
                 "  Added " + ga + ":" + info.version() + " (" + resolved.size() + " deps)");
           }
         } catch (Exception e) {
-          System.err.println("  Error resolving " + ga + ": " + e.getMessage());
+          UserOutput.error("  Error resolving " + ga, e);
         }
       }
 
       // Save config
       ConfigParser.save(config, configFile);
-      System.out.println(
+      UserOutput.info(
           "\nAdded " + depsToAdd.size() + " dependencies to " + ProjectPaths.CONFIG_FILE);
-      System.out.println("Total resolved: " + totalResolved + " artifacts");
+      UserOutput.info("Total resolved: " + totalResolved + " artifacts");
 
       // Ensure .project file exists
-      var projectFile = new File(ProjectPaths.DOT_PROJECT);
-      if (!projectFile.exists()) {
-        System.out.println("\nCreating " + ProjectPaths.DOT_PROJECT + " file...");
-        var projectXml = XmlUtils.generateProjectFile(config.package_().name());
-        FileUtils.writeFile(projectFile, projectXml);
-      }
+      CommandUtils.ensureProjectFiles(config);
 
       // Sync IDE configuration once at the end
-      System.out.println("\nSyncing IDE configuration...");
-      var generator = new ClasspathGenerator();
-      generator.generateClasspath(config, new File("."));
-      System.out.println("Generated " + ProjectPaths.DOT_CLASSPATH + " file");
+      CommandUtils.syncIdeConfig(config);
 
       return 0;
 

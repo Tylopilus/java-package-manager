@@ -1,5 +1,7 @@
 package jpm;
 
+import jpm.utils.UserOutput;
+
 /**
  * Version management and Java compatibility checking for JPM.
  * Provides constants for the current CLI version and minimum Java version requirements.
@@ -7,7 +9,7 @@ package jpm;
 public final class JpmVersion {
 
   public static final String CURRENT = "0.3.0";
-  public static final int MINIMUM_JAVA_VERSION = 25;
+  public static final int MINIMUM_JAVA_VERSION = 21;
 
   private JpmVersion() {
     // Prevent instantiation
@@ -20,10 +22,9 @@ public final class JpmVersion {
   public static void checkJavaVersion() {
     int version = Runtime.version().feature();
     if (version < MINIMUM_JAVA_VERSION) {
-      System.err.println(
+      UserOutput.error(
           "Error: Java " + MINIMUM_JAVA_VERSION + "+ required (found Java " + version + ")");
-      System.err.println(
-          "Please upgrade to Java " + MINIMUM_JAVA_VERSION + " or later to use JPM.");
+      UserOutput.error("Please upgrade to Java " + MINIMUM_JAVA_VERSION + " or later to use JPM.");
       System.exit(1);
     }
   }

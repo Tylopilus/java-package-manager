@@ -5,6 +5,7 @@ import java.util.concurrent.Callable;
 import jpm.build.CodeFormatter;
 import jpm.config.ConfigParser;
 import jpm.config.FmtConfig;
+import jpm.utils.UserOutput;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
@@ -111,33 +112,33 @@ public class FormatCommand implements Callable<Integer> {
         // Print per-file results in check mode
         if (check && !result.unformattedFiles().isEmpty()) {
           for (var unformatted : result.unformattedFiles()) {
-            System.out.println("  UNFORMATTED: " + unformatted);
+            UserOutput.info("  UNFORMATTED: " + unformatted);
           }
         }
       }
 
       // Print summary
-      System.out.println();
+      UserOutput.print("");
       if (check) {
-        System.out.println("Format Check Results:");
-        System.out.println("  Total files:    " + totalFiles);
-        System.out.println(
+        UserOutput.info("Format Check Results:");
+        UserOutput.info("  Total files:    " + totalFiles);
+        UserOutput.info(
             "  Correct:        " + (totalFiles - failedFiles - allUnformattedFiles.size()));
-        System.out.println("  Needs format:   " + allUnformattedFiles.size());
-        System.out.println("  Skipped:        " + skippedFiles);
-        System.out.println("  Failed:         " + failedFiles);
+        UserOutput.info("  Needs format:   " + allUnformattedFiles.size());
+        UserOutput.info("  Skipped:        " + skippedFiles);
+        UserOutput.info("  Failed:         " + failedFiles);
 
         if (!allUnformattedFiles.isEmpty()) {
-          System.out.println();
-          System.out.println("Run 'jpm fmt' to fix formatting issues.");
+          UserOutput.print("");
+          UserOutput.info("Run 'jpm fmt' to fix formatting issues.");
           return 1;
         }
       } else {
-        System.out.println("Format Results (" + formatter.getFormatterInfo() + "):");
-        System.out.println("  Total files:    " + totalFiles);
-        System.out.println("  Formatted:      " + formattedFiles);
-        System.out.println("  Skipped:        " + skippedFiles);
-        System.out.println("  Failed:         " + failedFiles);
+        UserOutput.info("Format Results (" + formatter.getFormatterInfo() + "):");
+        UserOutput.info("  Total files:    " + totalFiles);
+        UserOutput.info("  Formatted:      " + formattedFiles);
+        UserOutput.info("  Skipped:        " + skippedFiles);
+        UserOutput.info("  Failed:         " + failedFiles);
       }
 
       return failedFiles > 0 ? 1 : 0;

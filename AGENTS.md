@@ -47,8 +47,9 @@ javac -cp "$CLASSPATH" -d target/classes src/**/*.java
 ## Code Style Guidelines
 
 ### Language Version
-- **Java 25** is required
+- **Java 21** is required
 - Target modern Java features (records, var keyword, text blocks, switch expressions)
+- We target Java 21 compatibility but use the available compiler (likely 25).
 
 ### Imports
 ```java

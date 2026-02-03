@@ -9,6 +9,7 @@ import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.List;
 import jpm.utils.FileUtils;
+import jpm.utils.UserOutput;
 import jpm.utils.XmlUtils;
 
 /**
@@ -58,8 +59,8 @@ public class TestRunner {
       }
 
       if (!quiet) {
-        System.out.println("Found " + testClassNames.size() + " test class(es)");
-        System.out.println();
+        UserOutput.info("Found " + testClassNames.size() + " test class(es)");
+        UserOutput.print("");
       }
 
       // Load and run each test class
@@ -75,7 +76,7 @@ public class TestRunner {
           testResults.addAll(result.details());
         } catch (ClassNotFoundException e) {
           if (!quiet) {
-            System.err.println("Warning: Could not load test class: " + className);
+            UserOutput.warn("Warning: Could not load test class: " + className);
           }
         }
       }
@@ -185,7 +186,7 @@ public class TestRunner {
           details.add(new TestResult(clazz.getName() + "#" + method.getName(), "PASSED", duration));
 
           if (!quiet) {
-            System.out.println("  ✓ " + clazz.getSimpleName() + "." + method.getName());
+            UserOutput.info("  ✓ " + clazz.getSimpleName() + "." + method.getName());
           }
 
         } catch (Exception e) {
@@ -197,8 +198,8 @@ public class TestRunner {
               clazz.getName() + "#" + method.getName(), "FAILED", duration, cause.getMessage()));
 
           if (!quiet) {
-            System.err.println("  ✗ " + clazz.getSimpleName() + "." + method.getName());
-            System.err.println("    " + cause.getMessage());
+            UserOutput.error("  ✗ " + clazz.getSimpleName() + "." + method.getName());
+            UserOutput.error("    " + cause.getMessage());
           }
         }
       }
@@ -295,6 +296,5 @@ public class TestRunner {
       int passedTests,
       int failedTests,
       int skippedTests,
-      List<TestResult> details) {
-  }
+      List<TestResult> details) {}
 }

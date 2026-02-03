@@ -1,13 +1,8 @@
 package jpm.deps;
 
 import java.io.IOException;
-import java.net.URI;
 import java.net.URLEncoder;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -16,30 +11,17 @@ import jpm.net.HttpClientManager;
 public class MavenSearchClient {
   private static final String SEARCH_URL = "https://search.maven.org/solrsearch/select";
   private static final String GAV_URL = "https://search.maven.org/solrsearch/select";
-  private static final Duration TIMEOUT = Duration.ofSeconds(30);
 
-  private final HttpClient httpClient;
-
-  public MavenSearchClient() {
-    this.httpClient = HttpClientManager.getClient();
-  }
+  public MavenSearchClient() {}
 
   public List<SearchResult> searchByArtifactId(String artifactId, int rows) throws IOException {
     try {
       String encodedArtifactId = URLEncoder.encode(artifactId, StandardCharsets.UTF_8);
       String url = SEARCH_URL + "?q=a:" + encodedArtifactId + "&rows=" + rows + "&wt=json";
 
-      HttpRequest request =
-          HttpRequest.newBuilder().uri(URI.create(url)).timeout(TIMEOUT).GET().build();
+      String response = HttpClientManager.sendGet(url);
+      return parseSearchResults(response);
 
-      HttpResponse<String> response =
-          httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-      if (response.statusCode() == 200) {
-        return parseSearchResults(response.body());
-      } else {
-        throw new IOException("Search failed with status: " + response.statusCode());
-      }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new IOException("Search interrupted", e);
@@ -53,17 +35,9 @@ public class MavenSearchClient {
       String url = GAV_URL + "?q=g:" + encodedGroupId + "+AND+a:" + encodedArtifactId
           + "&core=gav&rows=20&wt=json";
 
-      HttpRequest request =
-          HttpRequest.newBuilder().uri(URI.create(url)).timeout(TIMEOUT).GET().build();
+      String response = HttpClientManager.sendGet(url);
+      return parseLatestStableVersion(response);
 
-      HttpResponse<String> response =
-          httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-      if (response.statusCode() == 200) {
-        return parseLatestStableVersion(response.body());
-      } else {
-        throw new IOException("Version lookup failed with status: " + response.statusCode());
-      }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new IOException("Version lookup interrupted", e);

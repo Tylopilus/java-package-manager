@@ -1,7 +1,6 @@
 package jpm.cli;
 
 import java.io.File;
-
 import jpm.build.ClasspathBuilder;
 import jpm.build.Compiler;
 import jpm.build.TestCompiler;
@@ -10,7 +9,7 @@ import jpm.config.ProfileConfig;
 import jpm.config.ProjectPaths;
 import jpm.utils.Constants;
 import jpm.utils.FileUtils;
-
+import jpm.utils.UserOutput;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
@@ -66,7 +65,7 @@ public class TestCommand extends AbstractBuildCommand {
   @Override
   protected void printBuildHeader() {
     if (!quiet) {
-      System.out.println("Running tests for " + config.package_().name() + "...");
+      UserOutput.info("Running tests for " + config.package_().name() + "...");
     }
   }
 
@@ -91,8 +90,7 @@ public class TestCommand extends AbstractBuildCommand {
     // Add main classes to classpath
     var mainClasses = new File(ProjectPaths.CLASSES_DIR);
     if (mainClasses.exists()) {
-      classpath =
-          ClasspathBuilder.combineClasspaths(mainClasses.getAbsolutePath(), classpath);
+      classpath = ClasspathBuilder.combineClasspaths(mainClasses.getAbsolutePath(), classpath);
     }
   }
 
@@ -102,7 +100,7 @@ public class TestCommand extends AbstractBuildCommand {
     profile = "test";
     profileConfig = config.profiles().getOrDefault(profile, getDefaultProfile());
     if (!quiet) {
-      System.out.println("Using profile: " + profile);
+      UserOutput.info("Using profile: " + profile);
     }
   }
 
@@ -124,7 +122,7 @@ public class TestCommand extends AbstractBuildCommand {
   @Override
   protected Compiler.CompileResult compile() throws Exception {
     if (!quiet) {
-      System.out.println("Compiling tests...");
+      UserOutput.info("Compiling tests...");
     }
 
     var testSourceDir = getSourceDir();
@@ -137,7 +135,7 @@ public class TestCommand extends AbstractBuildCommand {
     var result = testCompiler.compileTests(testSourceDir, testOutputDir, classpath, javaVersion);
 
     if (result.success() && !quiet) {
-      System.out.println("Compiled tests successfully");
+      UserOutput.info("Compiled tests successfully");
     }
 
     return result;
@@ -146,8 +144,8 @@ public class TestCommand extends AbstractBuildCommand {
   @Override
   protected int execute() throws Exception {
     if (!quiet) {
-      System.out.println("Running tests...");
-      System.out.println();
+      UserOutput.info("Running tests...");
+      UserOutput.print("");
     }
 
     var testOutputDir = getOutputDir();
@@ -157,19 +155,19 @@ public class TestCommand extends AbstractBuildCommand {
 
     // Print summary
     if (!quiet) {
-      System.out.println();
-      System.out.println("Test Results:");
-      System.out.println("  Total:   " + runResult.totalTests());
-      System.out.println("  Passed:  " + runResult.passedTests());
-      System.out.println("  Failed:  " + runResult.failedTests());
-      System.out.println("  Skipped: " + runResult.skippedTests());
-      System.out.println();
+      UserOutput.print("");
+      UserOutput.info("Test Results:");
+      UserOutput.info("  Total:   " + runResult.totalTests());
+      UserOutput.info("  Passed:  " + runResult.passedTests());
+      UserOutput.info("  Failed:  " + runResult.failedTests());
+      UserOutput.info("  Skipped: " + runResult.skippedTests());
+      UserOutput.print("");
     }
 
     // Generate report
     var reportFile = new File(reportDir, "jpm-test-report.xml");
     if (!quiet) {
-      System.out.println("Test report generated: " + reportFile.getAbsolutePath());
+      UserOutput.info("Test report generated: " + reportFile.getAbsolutePath());
     }
 
     // Return appropriate exit code

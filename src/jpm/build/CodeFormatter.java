@@ -13,6 +13,7 @@ import jpm.build.format.PalantirFormatter;
 import jpm.config.FmtConfig;
 import jpm.utils.FileCollector;
 import jpm.utils.FileUtils;
+import jpm.utils.UserOutput;
 
 /**
  * High-level code formatter orchestrator.
@@ -82,7 +83,7 @@ public class CodeFormatter {
           }
         }
       } catch (FormatterException e) {
-        System.err.println("  Error formatting " + file + ": " + e.getMessage());
+        UserOutput.error("  Error formatting " + file + ": " + e.getMessage());
         failedFiles++;
       }
     }
@@ -124,7 +125,7 @@ public class CodeFormatter {
 
       return true;
     } catch (FormatterException e) {
-      System.err.println("  Error formatting " + file + ": " + e.getMessage());
+      UserOutput.error("  Error formatting " + file + ": " + e.getMessage());
       return false;
     }
   }

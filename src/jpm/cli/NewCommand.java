@@ -3,13 +3,14 @@ package jpm.cli;
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.Callable;
+import jpm.build.IdeFileGenerator;
 import jpm.config.ConfigParser;
 import jpm.config.FmtConfig;
 import jpm.config.JpmConfig;
 import jpm.config.ProjectPaths;
 import jpm.utils.Constants;
 import jpm.utils.FileUtils;
-import jpm.utils.XmlUtils;
+import jpm.utils.UserOutput;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 
@@ -28,7 +29,7 @@ public class NewCommand implements Callable<Integer> {
         return 1;
       }
 
-      System.out.println("Creating new Java project '" + projectName + "'");
+      UserOutput.info("Creating new Java project '" + projectName + "'");
 
       // Create directories
       FileUtils.ensureDirectory(new File(projectDir, ProjectPaths.SRC_DIR));
@@ -40,35 +41,31 @@ public class NewCommand implements Callable<Integer> {
 
       var configFile = new File(projectDir, ProjectPaths.CONFIG_FILE);
       ConfigParser.save(config, configFile);
-      System.out.println("  Created " + ProjectPaths.CONFIG_FILE);
+      UserOutput.info("  Created " + ProjectPaths.CONFIG_FILE);
 
       // Create Main.java template
       var mainClass = generateMainClass(projectName);
       var mainFile = new File(projectDir, ProjectPaths.SRC_DIR + "/Main.java");
       FileUtils.writeFile(mainFile, mainClass);
-      System.out.println("  Created " + ProjectPaths.SRC_DIR + "/Main.java");
+      UserOutput.info("  Created " + ProjectPaths.SRC_DIR + "/Main.java");
 
       // Create .project file (required for IDE integration)
-      var projectXml = XmlUtils.generateProjectFile(projectName);
-      var projectFile = new File(projectDir, ProjectPaths.DOT_PROJECT);
-      FileUtils.writeFile(projectFile, projectXml);
-      System.out.println("  Created " + ProjectPaths.DOT_PROJECT);
+      IdeFileGenerator.generateProjectFile(projectDir, config);
+      UserOutput.info("  Created " + ProjectPaths.DOT_PROJECT);
 
       // Create initial .classpath file
-      var classpathXml = XmlUtils.generateMinimalClasspathFile(config.package_().javaVersion());
-      var classpathFile = new File(projectDir, ProjectPaths.DOT_CLASSPATH);
-      FileUtils.writeFile(classpathFile, classpathXml);
-      System.out.println("  Created " + ProjectPaths.DOT_CLASSPATH);
+      IdeFileGenerator.generateClasspathFile(projectDir, config, null);
+      UserOutput.info("  Created " + ProjectPaths.DOT_CLASSPATH);
 
       // Create .gitignore
       var gitignore = generateGitignore();
       var gitignoreFile = new File(projectDir, ProjectPaths.DOT_GITIGNORE);
       FileUtils.writeFile(gitignoreFile, gitignore);
-      System.out.println("  Created " + ProjectPaths.DOT_GITIGNORE);
+      UserOutput.info("  Created " + ProjectPaths.DOT_GITIGNORE);
 
-      System.out.println("\nProject '" + projectName + "' created successfully!");
-      System.out.println("  cd " + projectName);
-      System.out.println("  jpm run");
+      UserOutput.info("\nProject '" + projectName + "' created successfully!");
+      UserOutput.print("  cd " + projectName);
+      UserOutput.print("  jpm run");
 
       return 0;
 

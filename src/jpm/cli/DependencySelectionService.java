@@ -7,6 +7,7 @@ import jpm.config.JpmConfig;
 import jpm.config.ProjectPaths;
 import jpm.deps.MavenSearchClient;
 import jpm.utils.Constants;
+import jpm.utils.UserOutput;
 
 /**
  * Resolves dependency inputs into full coordinates.
@@ -60,7 +61,7 @@ public class DependencySelectionService {
       }
       default -> {
         CliErrorHandler.error("Invalid format: " + input);
-        System.err.println(
+        UserOutput.error(
             "Expected: group:artifact:version, group:artifact, artifact:version, or artifact");
         yield null;
       }
@@ -73,14 +74,14 @@ public class DependencySelectionService {
         searchClient.searchByArtifactId(artifactId, Constants.DEFAULT_SEARCH_RESULTS_LIMIT);
 
     if (results.isEmpty()) {
-      System.out.println("No packages found matching \"" + artifactId + "\"");
+      UserOutput.info("No packages found matching \"" + artifactId + "\"");
       return null;
     }
 
-    System.out.println("Found " + results.size() + " results:");
+    UserOutput.info("Found " + results.size() + " results:");
     var displayCount = Math.min(results.size(), Constants.DEFAULT_SEARCH_RESULTS_LIMIT);
     for (int i = 0; i < displayCount; i++) {
-      System.out.println("  " + (i + 1) + ". " + results.get(i));
+      UserOutput.info("  " + (i + 1) + ". " + results.get(i));
     }
 
     if (results.size() == 1) {
@@ -93,7 +94,7 @@ public class DependencySelectionService {
 
     var selection = prompter.promptForSelection(displayCount);
     if (selection < 0) {
-      System.out.println("Cancelled");
+      UserOutput.info("Cancelled");
       return null;
     }
 
@@ -113,10 +114,10 @@ public class DependencySelectionService {
       if (config.dependencies().containsKey(ga)) {
         var existingVersion = config.dependencies().get(ga);
         if (existingVersion.equals(version)) {
-          System.out.println("Note: " + ga + " already at version " + version);
+          UserOutput.info("Note: " + ga + " already at version " + version);
           return new DependencyInfo(groupId, artifactId, version);
         }
-        System.out.println("Update: " + existingVersion + " -> " + version);
+        UserOutput.info("Update: " + existingVersion + " -> " + version);
       }
     } else {
       var configFile = new File(ProjectPaths.CONFIG_FILE);
@@ -126,10 +127,10 @@ public class DependencySelectionService {
           if (loadedConfig.dependencies().containsKey(ga)) {
             var existingVersion = loadedConfig.dependencies().get(ga);
             if (existingVersion.equals(version)) {
-              System.out.println("Note: " + ga + " already at version " + version);
+              UserOutput.info("Note: " + ga + " already at version " + version);
               return new DependencyInfo(groupId, artifactId, version);
             }
-            System.out.println("Update: " + existingVersion + " -> " + version);
+            UserOutput.info("Update: " + existingVersion + " -> " + version);
           }
         } catch (Exception e) {
           // Ignore, will be checked again later
@@ -137,10 +138,10 @@ public class DependencySelectionService {
       }
     }
 
-    System.out.println("Found: " + ga + ":" + version);
+    UserOutput.info("Found: " + ga + ":" + version);
 
     if (!prompter.confirm("Add?", autoConfirm)) {
-      System.out.println("Skipped");
+      UserOutput.info("Skipped");
       return null;
     }
 

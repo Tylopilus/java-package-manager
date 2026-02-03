@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.Callable;
-
 import jpm.build.ClasspathBuilder;
 import jpm.build.Compiler;
 import jpm.build.IdeFileGenerator;
@@ -14,7 +13,7 @@ import jpm.config.ProfileConfig;
 import jpm.config.ProjectPaths;
 import jpm.deps.DependencyResolver;
 import jpm.deps.ResolvedDependency;
-
+import jpm.utils.UserOutput;
 import picocli.CommandLine.Option;
 
 /**
@@ -63,7 +62,7 @@ public abstract class AbstractBuildCommand implements Callable<Integer> {
 
       var compileResult = compile();
       if (!compileResult.success()) {
-        System.err.println("Build failed with exit code " + compileResult.exitCode());
+        UserOutput.error("Build failed with exit code " + compileResult.exitCode());
         return compileResult.exitCode();
       }
 
@@ -111,7 +110,7 @@ public abstract class AbstractBuildCommand implements Callable<Integer> {
    * Subclasses can override for custom headers.
    */
   protected void printBuildHeader() {
-    System.out.println(
+    UserOutput.info(
         "Building " + config.package_().name() + " v" + config.package_().version());
   }
 
@@ -133,7 +132,7 @@ public abstract class AbstractBuildCommand implements Callable<Integer> {
       var resolver = new DependencyResolver();
       resolvedDeps = resolver.resolveWithLockfile(projectDir, config, forceResolve);
       classpath = ClasspathBuilder.buildClasspath(resolvedDeps);
-      System.out.println("Resolved " + resolvedDeps.size() + " dependencies");
+      UserOutput.info("Resolved " + resolvedDeps.size() + " dependencies");
     }
   }
 
@@ -143,7 +142,7 @@ public abstract class AbstractBuildCommand implements Callable<Integer> {
   protected void generateClasspathFileIfNeeded() throws IOException {
     if (!noIdeFiles && !new File(projectDir, ProjectPaths.DOT_CLASSPATH).exists()) {
       IdeFileGenerator.generateClasspathFile(projectDir, config, classpath);
-      System.out.println("Generated IDE configuration files (.project, .classpath)");
+      UserOutput.info("Generated IDE configuration files (.project, .classpath)");
     }
   }
 
@@ -153,7 +152,7 @@ public abstract class AbstractBuildCommand implements Callable<Integer> {
    */
   protected void loadProfile() {
     profileConfig = config.profiles().getOrDefault(profile, getDefaultProfile());
-    System.out.println("Using profile: " + profile);
+    UserOutput.info("Using profile: " + profile);
   }
 
   /**

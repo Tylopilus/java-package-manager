@@ -2,28 +2,16 @@ package jpm.deps;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.*;
 import jpm.net.HttpClientManager;
 import jpm.utils.Constants;
-import jpm.utils.Logger;
+import jpm.utils.UserOutput;
 
 public class MavenClient {
   private static final String MAVEN_CENTRAL = Constants.MAVEN_CENTRAL;
-  private static final Duration TIMEOUT = Duration.ofSeconds(Constants.DEFAULT_TIMEOUT_SECONDS);
 
-  private final HttpClient httpClient;
-
-  public MavenClient() {
-    this.httpClient = HttpClientManager.getClient();
-  }
+  public MavenClient() {}
 
   public boolean downloadArtifact(
       String groupId, String artifactId, String version, File outputDir, String extension)
@@ -37,43 +25,22 @@ public class MavenClient {
       return true; // Already cached
     }
 
-    HttpRequest request =
-        HttpRequest.newBuilder().uri(URI.create(url)).timeout(TIMEOUT).GET().build();
-
-    try {
-      HttpResponse<Path> response =
-          httpClient.send(request, HttpResponse.BodyHandlers.ofFile(outputFile.toPath()));
-
-      if (response.statusCode() == 200) {
-        return true;
-      } else {
-        Files.deleteIfExists(outputFile.toPath());
-        return false;
-      }
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      return false;
-    }
+    return HttpClientManager.downloadFile(url, outputFile.toPath());
   }
 
   public String downloadPom(String groupId, String artifactId, String version) throws IOException {
     String path = buildPath(groupId, artifactId, version, "pom");
     String url = MAVEN_CENTRAL + path;
 
-    HttpRequest request =
-        HttpRequest.newBuilder().uri(URI.create(url)).timeout(TIMEOUT).GET().build();
-
     try {
-      HttpResponse<String> response =
-          httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-      if (response.statusCode() == 200) {
-        return response.body();
-      } else {
-        return null;
-      }
+      return HttpClientManager.sendGet(url);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
+      return null;
+    } catch (IOException e) {
+      // preserve original behavior: return null on failure (e.g. 404)
+      // Check if I should log or just return null. The original code returned null on non-200.
+      // HttpClientManager.sendGet throws IOException on non-200.
       return null;
     }
   }
@@ -109,7 +76,7 @@ public class MavenClient {
                   spec.outputDir(),
                   spec.extension());
             } catch (IOException e) {
-              Logger.error("Error downloading " + spec + ": " + e.getMessage());
+              UserOutput.error("Error downloading " + spec + ": " + e.getMessage());
               return false;
             }
           }))

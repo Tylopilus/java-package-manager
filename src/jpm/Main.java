@@ -9,6 +9,7 @@ import jpm.cli.RemoveCommand;
 import jpm.cli.RunCommand;
 import jpm.cli.SyncCommand;
 import jpm.cli.TestCommand;
+import jpm.utils.UserOutput;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 
@@ -39,7 +40,7 @@ public class Main implements Runnable {
 
   @Override
   public void run() {
-    System.out.println(JpmVersion.getDisplayVersion());
-    System.out.println("Use 'jpm --help' for available commands");
+    UserOutput.print(JpmVersion.getDisplayVersion());
+    UserOutput.print("Use 'jpm --help' for available commands");
   }
 }

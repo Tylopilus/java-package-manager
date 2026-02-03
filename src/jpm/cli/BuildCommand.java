@@ -2,6 +2,7 @@ package jpm.cli;
 
 import jpm.build.Compiler;
 import jpm.config.ProjectPaths;
+import jpm.utils.UserOutput;
 import picocli.CommandLine.Command;
 
 /**
@@ -24,7 +25,7 @@ public class BuildCommand extends AbstractBuildCommand {
 
   @Override
   protected int execute() {
-    System.out.println("Build successful! Output in " + ProjectPaths.CLASSES_DIR + "/");
+    UserOutput.info("Build successful! Output in " + ProjectPaths.CLASSES_DIR + "/");
     return 0;
   }
 

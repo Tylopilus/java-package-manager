@@ -4,6 +4,7 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import javax.xml.parsers.*;
+import jpm.utils.UserOutput;
 import org.w3c.dom.*;
 
 public class PomParser {
@@ -132,7 +133,7 @@ public class PomParser {
           allProps.putAll(inheritedProps);
         }
       } catch (IOException e) {
-        System.err.println(
+        UserOutput.warn(
             "  Warning: Failed to resolve parent chain for properties: " + e.getMessage());
       }
     }

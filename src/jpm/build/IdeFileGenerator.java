@@ -4,7 +4,10 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import jpm.config.JpmConfig;
+import jpm.deps.CacheManager;
+import jpm.deps.DependencyResolver;
 import jpm.utils.FileUtils;
+import jpm.utils.UserOutput;
 import jpm.utils.XmlUtils;
 
 /**
@@ -33,7 +36,7 @@ public class IdeFileGenerator {
     }
 
     if (projectMissing || classpathMissing) {
-      System.out.println("Generated IDE configuration files (.project, .classpath)");
+      UserOutput.info("Generated IDE configuration files (.project, .classpath)");
     }
   }
 
@@ -76,8 +79,40 @@ public class IdeFileGenerator {
 
   public static void generateClasspathFileWithDeps(File projectDir, JpmConfig config)
       throws IOException {
-    // Use ClasspathGenerator for full dependency resolution
-    ClasspathGenerator generator = new ClasspathGenerator();
-    generator.generateClasspath(config, projectDir);
+    var classpathFile = new File(projectDir, ".classpath");
+    var javaVersion = config.package_().javaVersion();
+    var dependencyPaths = new ArrayList<String>();
+    var cacheManager = new CacheManager();
+
+    // Resolve and add dependencies
+    if (!config.dependencies().isEmpty()) {
+      try {
+        var resolver = new DependencyResolver();
+        var deps = resolver.resolveWithLockfile(projectDir, config, false);
+        for (var dep : deps) {
+          if (dep.jarFile().exists()) {
+            dependencyPaths.add(dep.jarFile().getAbsolutePath());
+          }
+        }
+      } catch (Exception e) {
+        // If resolution fails, fall back to direct dependencies only
+        for (var entry : config.dependencies().entrySet()) {
+          var parts = entry.getKey().split(":");
+          if (parts.length == 2) {
+            var groupId = parts[0];
+            var artifactId = parts[1];
+            var version = entry.getValue();
+
+            var jarFile = cacheManager.getJarFile(groupId, artifactId, version);
+            if (jarFile.exists()) {
+              dependencyPaths.add(jarFile.getAbsolutePath());
+            }
+          }
+        }
+      }
+    }
+
+    String classpathXml = XmlUtils.generateClasspathFile(javaVersion, dependencyPaths);
+    FileUtils.writeFile(classpathFile, classpathXml);
   }
 }

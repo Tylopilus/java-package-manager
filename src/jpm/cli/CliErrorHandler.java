@@ -1,5 +1,7 @@
 package jpm.cli;
 
+import jpm.utils.UserOutput;
+
 /**
  * Standardized error handling for CLI commands.
  */
@@ -11,10 +13,10 @@ public final class CliErrorHandler {
 
   public static void error(String message) {
     if (message == null || message.isBlank()) {
-      System.err.println("Error: Unknown error");
+      UserOutput.error("Unknown error");
       return;
     }
-    System.err.println("Error: " + message);
+    UserOutput.error(message);
   }
 
   public static void error(String message, Exception e) {
