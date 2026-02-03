@@ -34,9 +34,17 @@ jpm run
 
 ### Add Dependencies
 
+**Full coordinates (exact):**
 ```bash
 jpm add com.google.guava:guava:32.1.3-jre
 jpm add org.slf4j:slf4j-api:2.0.9
+```
+
+**Interactive search (partial names):**
+```bash
+jpm add guava          # Searches Maven Central, shows matches, select interactively
+jpm add jackson-databind slf4j-api  # Batch mode - add multiple at once
+jpm add --yes guava    # Non-interactive mode, auto-confirm
 ```
 
 ### Build and Run
@@ -57,6 +65,52 @@ jpm clean    # Remove target/
 | `jpm build`             | Compile src/ → target/classes/            | `jpm build`                                 |
 | `jpm run`               | Build + execute Main class                | `jpm run`                                   |
 | `jpm clean`             | Delete target/ directory                  | `jpm clean`                                 |
+| `jpm sync`              | Sync IDE configuration (`.classpath`, `.project`) | `jpm sync`                          |
+
+## IDE Integration
+
+jpm automatically generates Eclipse project files (`.project` and `.classpath`) that are recognized by most Java IDEs and LSP servers (jdtls, VSCode, Eclipse).
+
+### Project Files
+
+**`.project`** - Eclipse project metadata (committed to git)
+- Defines the project name and Java nature
+- Required for jdtls to recognize the folder as a Java project
+- Generated automatically by `jpm new` and `jpm add`
+- **Should be committed** to version control
+
+**`.classpath`** - IDE classpath configuration (generated, not committed)
+- Lists source directories, output directories, JRE, and all dependency JARs
+- Includes **transitive dependencies** automatically
+- Regenerated when you add/remove dependencies
+- Listed in `.gitignore` by default
+
+### nvim-jdtls / VSCode / Eclipse
+
+When you create or work with a project, jpm generates both files:
+
+```bash
+jpm new my-app              # Creates .project and .classpath
+jpm add com.google.guava:guava:32.1.3-jre  # Updates .classpath with transitive deps
+# Open your IDE - imports and autocompletion work immediately!
+```
+
+The `.classpath` file includes:
+
+- Source directory (`src/`)
+- Output directory (`target/classes/`)
+- JRE container
+- All dependency JARs from `~/.jpm/cache/` (including transitive dependencies)
+
+**Note:** If you delete `.project`, run `jpm sync` or `jpm add` to regenerate it.
+
+### Manual Sync
+
+If you need to regenerate the IDE configuration files manually:
+
+```bash
+jpm sync  # Regenerates both .project and .classpath
+```
 
 ## Configuration
 
@@ -93,6 +147,15 @@ In `jpm.toml`, they are stored as:
 4. **Cache** all artifacts in `~/.jpm/cache/`
 5. **Build** classpath from cached JARs
 
+### IDE File Generation
+
+When you run `jpm new` or `jpm add`:
+
+1. **`.project`** is created with Eclipse project metadata (if missing)
+2. **`.classpath`** is generated including all transitive dependencies
+3. Files are written to the project root
+4. jdtls and other Eclipse-based IDEs immediately recognize the project
+
 ### Cache Structure
 
 ```
@@ -122,12 +185,21 @@ When multiple versions of the same artifact are needed:
 
 ```
 my-app/
+├── .project           # Eclipse project metadata (commit this)
+├── .classpath         # IDE classpath (auto-generated, in .gitignore)
+├── .gitignore         # Git ignore rules
 ├── jpm.toml           # Project configuration
 ├── src/
 │   └── Main.java     # Main class (entry point)
 └── target/
     └── classes/      # Compiled classes
 ```
+
+**File Guide:**
+- `.project` - Required for IDE integration, should be committed
+- `.classpath` - Auto-generated from `jpm.toml`, in `.gitignore`
+- `jpm.toml` - Your project configuration, should be committed
+- `target/` - Build output, in `.gitignore`
 
 ## Example Usage
 
@@ -168,10 +240,10 @@ jpm run
 ```
 src/jpm/
 ├── Main.java              # CLI entry point
-├── cli/                   # Commands (new, add, remove, build, run, clean)
+├── cli/                   # Commands (new, add, remove, build, run, clean, sync)
 ├── config/                # TOML parsing (JpmConfig, ConfigParser)
 ├── deps/                  # Maven client, POM parser, dependency resolver
-├── build/                 # Compiler, runner, classpath builder
+├── build/                 # Compiler, runner, classpath builder, classpath generator
 └── utils/                 # File utilities, version comparison
 ```
 
