@@ -54,8 +54,10 @@ jpm add --yes guava    # Non-interactive mode, auto-confirm
 ```bash
 jpm build              # Compile only
 jpm build --force-resolve   # Force dependency re-resolution
+jpm build --no-ide-files    # Skip IDE file generation
 jpm run                # Build + run
 jpm run --force-resolve     # Force dependency re-resolution
+jpm run --no-ide-files      # Skip IDE file generation
 jpm clean              # Remove target/
 ```
 
@@ -68,8 +70,10 @@ jpm clean              # Remove target/
 | `jpm remove <artifact>` | Remove dependency                         | `jpm remove guava`                          |
 | `jpm build`             | Compile src/ → target/classes/            | `jpm build`                                 |
 | `jpm build --force-resolve` | Compile with fresh dependency resolution | `jpm build --force-resolve`          |
+| `jpm build --no-ide-files` | Compile without generating IDE files | `jpm build --no-ide-files`          |
 | `jpm run`               | Build + execute Main class                | `jpm run`                                   |
 | `jpm run --force-resolve` | Build + run with fresh resolution      | `jpm run --force-resolve`             |
+| `jpm run --no-ide-files` | Build + run without generating IDE files | `jpm run --no-ide-files`             |
 | `jpm clean`             | Delete target/ directory                  | `jpm clean`                                 |
 | `jpm sync`              | Sync IDE configuration (`.classpath`, `.project`) | `jpm sync`                          |
 
@@ -82,23 +86,31 @@ jpm automatically generates Eclipse project files (`.project` and `.classpath`) 
 **`.project`** - Eclipse project metadata (committed to git)
 - Defines the project name and Java nature
 - Required for jdtls to recognize the folder as a Java project
-- Generated automatically by `jpm new` and `jpm add`
+- Generated automatically by `jpm new`, `jpm run`, `jpm build`, and `jpm add`
 - **Should be committed** to version control
 
 **`.classpath`** - IDE classpath configuration (generated, not committed)
 - Lists source directories, output directories, JRE, and all dependency JARs
 - Includes **transitive dependencies** automatically
-- Regenerated when you add/remove dependencies
+- Generated automatically by `jpm new`, `jpm run`, `jpm build`, and `jpm add`
 - Listed in `.gitignore` by default
 
 ### nvim-jdtls / VSCode / Eclipse
 
-When you create or work with a project, jpm generates both files:
+When you create or work with a project, jpm generates both files automatically:
 
 ```bash
 jpm new my-app              # Creates .project and .classpath
+jpm run                     # Creates .project and .classpath if missing
+jpm build                   # Creates .project and .classpath if missing
 jpm add com.google.guava:guava:32.1.3-jre  # Updates .classpath with transitive deps
 # Open your IDE - imports and autocompletion work immediately!
+```
+
+**Note:** IDE files are only generated if they don't exist. To skip generation, use `--no-ide-files`:
+
+```bash
+jpm run --no-ide-files      # Won't create .project or .classpath
 ```
 
 The `.classpath` file includes:
