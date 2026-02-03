@@ -19,21 +19,12 @@ public class RunCommand extends AbstractBuildCommand {
   @Override
   protected void validateProject() {
     super.validateProject();
-
-    var sourceDir = getSourceDir();
-    if (!sourceDir.exists()) {
-      throw new ProjectValidationException("No " + ProjectPaths.SRC_DIR + "/ directory found");
-    }
+    validateSourceDirExists(getSourceDir(), ProjectPaths.SRC_DIR);
   }
 
   @Override
   protected Compiler.CompileResult compile() throws Exception {
-    var sourceDir = getSourceDir();
-    var outputDir = getOutputDir();
-
-    var compiler = new Compiler();
-    var compilerArgs = profileConfig.getEffectiveCompilerArgs();
-    return compiler.compile(sourceDir, outputDir, classpath, compilerArgs);
+    return compileSources(getSourceDir(), getOutputDir());
   }
 
   @Override

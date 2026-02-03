@@ -46,40 +46,4 @@ public class ClasspathBuilder {
 
     return result.toString();
   }
-
-  /**
-   * Combines multiple classpaths efficiently using String.join.
-   * Filters out null/empty strings first to avoid unnecessary separators.
-   *
-   * @param classpaths Variable number of classpath strings
-   * @return Combined classpath string
-   */
-  public static String combineClasspathsFast(String... classpaths) {
-    if (classpaths == null || classpaths.length == 0) {
-      return "";
-    }
-
-    // Count non-empty classpaths
-    var nonEmptyCount = 0;
-    for (var cp : classpaths) {
-      if (cp != null && !cp.isEmpty()) {
-        nonEmptyCount++;
-      }
-    }
-
-    if (nonEmptyCount == 0) {
-      return "";
-    }
-
-    // Collect non-empty paths
-    var paths = new String[nonEmptyCount];
-    var idx = 0;
-    for (var cp : classpaths) {
-      if (cp != null && !cp.isEmpty()) {
-        paths[idx++] = cp;
-      }
-    }
-
-    return String.join(File.pathSeparator, paths);
-  }
 }

@@ -23,7 +23,7 @@ public class TestCompiler {
    * @param testSourceDir Directory containing test sources (src/test/java/)
    * @param testOutputDir Output directory for compiled test classes (target/test-classes/)
    * @param classpath Full classpath including main classes, dependencies, and test libraries
-   * @param javaVersion Java version for --release flag (e.g., "21")
+   * @param javaVersion Java version for --release flag (e.g., "25")
    * @return CompileResult with success status and exit code
    * @throws IOException if compilation fails
    */

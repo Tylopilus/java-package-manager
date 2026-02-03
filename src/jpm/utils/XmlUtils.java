@@ -59,7 +59,7 @@ public final class XmlUtils {
   /**
    * Generates Eclipse .classpath file content with dependencies.
    *
-   * @param javaVersion the Java version (e.g., "21")
+   * @param javaVersion the Java version (e.g., "25")
    * @param dependencyPaths list of dependency JAR paths
    * @return XML content for .classpath file
    */
@@ -103,7 +103,7 @@ public final class XmlUtils {
   /**
    * Generates a minimal Eclipse .classpath file for a new project.
    *
-   * @param javaVersion the Java version (e.g., "21")
+   * @param javaVersion the Java version (e.g., "25")
    * @return XML content for .classpath file
    */
   public static String generateMinimalClasspathFile(String javaVersion) {

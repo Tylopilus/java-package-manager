@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.Callable;
+
 import jpm.build.ClasspathBuilder;
 import jpm.build.Compiler;
 import jpm.build.IdeFileGenerator;
@@ -13,6 +14,7 @@ import jpm.config.ProfileConfig;
 import jpm.config.ProjectPaths;
 import jpm.deps.DependencyResolver;
 import jpm.deps.ResolvedDependency;
+
 import picocli.CommandLine.Option;
 
 /**
@@ -85,6 +87,15 @@ public abstract class AbstractBuildCommand implements Callable<Integer> {
     if (!configFile.exists()) {
       throw new ProjectValidationException(
           "No " + ProjectPaths.CONFIG_FILE + " found. Run 'jpm new <name>' first.");
+    }
+  }
+
+  /**
+   * Validates that a required source directory exists.
+   */
+  protected void validateSourceDirExists(File sourceDir, String sourceDirPath) {
+    if (!sourceDir.exists()) {
+      throw new ProjectValidationException("No " + sourceDirPath + "/ directory found");
     }
   }
 
@@ -167,6 +178,15 @@ public abstract class AbstractBuildCommand implements Callable<Integer> {
    */
   protected File getOutputDir() {
     return new File(ProjectPaths.CLASSES_DIR);
+  }
+
+  /**
+   * Compiles project sources using the active profile configuration.
+   */
+  protected Compiler.CompileResult compileSources(File sourceDir, File outputDir) throws Exception {
+    var compiler = new Compiler();
+    var compilerArgs = profileConfig.getEffectiveCompilerArgs();
+    return compiler.compile(sourceDir, outputDir, classpath, compilerArgs);
   }
 
   /**

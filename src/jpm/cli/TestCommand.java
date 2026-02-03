@@ -1,12 +1,16 @@
 package jpm.cli;
 
 import java.io.File;
+
+import jpm.build.ClasspathBuilder;
 import jpm.build.Compiler;
 import jpm.build.TestCompiler;
 import jpm.build.TestRunner;
 import jpm.config.ProfileConfig;
 import jpm.config.ProjectPaths;
 import jpm.utils.Constants;
+import jpm.utils.FileUtils;
+
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
@@ -87,7 +91,8 @@ public class TestCommand extends AbstractBuildCommand {
     // Add main classes to classpath
     var mainClasses = new File(ProjectPaths.CLASSES_DIR);
     if (mainClasses.exists()) {
-      classpath = mainClasses.getAbsolutePath() + File.pathSeparator + classpath;
+      classpath =
+          ClasspathBuilder.combineClasspaths(mainClasses.getAbsolutePath(), classpath);
     }
   }
 
@@ -181,25 +186,16 @@ public class TestCommand extends AbstractBuildCommand {
    * Downloads JUnit if not already present in the cache.
    */
   private String addJUnitToClasspath(String existingClasspath) {
-    var jpmDir = new File(System.getProperty("user.home"), ".jpm");
-    var libDir = new File(jpmDir, "lib");
+    var libDir = new File(FileUtils.getJpmHome(), "lib");
 
     var junitJupiter = new File(libDir, "junit-jupiter-" + Constants.JUNIT_VERSION + ".jar");
     var junitPlatform = new File(
         libDir, "junit-platform-console-standalone-" + Constants.JUNIT_PLATFORM_VERSION + ".jar");
 
-    var result = existingClasspath;
+    var junitClasspath = ClasspathBuilder.combineClasspaths(
+        junitJupiter.exists() ? junitJupiter.getAbsolutePath() : "",
+        junitPlatform.exists() ? junitPlatform.getAbsolutePath() : "");
 
-    // Add JUnit Jupiter (API and engine)
-    if (junitJupiter.exists()) {
-      result = junitJupiter.getAbsolutePath() + File.pathSeparator + result;
-    }
-
-    // Add JUnit Platform (launcher and engine)
-    if (junitPlatform.exists()) {
-      result = junitPlatform.getAbsolutePath() + File.pathSeparator + result;
-    }
-
-    return result;
+    return ClasspathBuilder.combineClasspaths(junitClasspath, existingClasspath);
   }
 }

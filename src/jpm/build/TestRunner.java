@@ -296,25 +296,5 @@ public class TestRunner {
       int failedTests,
       int skippedTests,
       List<TestResult> details) {
-
-    public int totalTests() {
-      return totalTests;
-    }
-
-    public int passedTests() {
-      return passedTests;
-    }
-
-    public int failedTests() {
-      return failedTests;
-    }
-
-    public int skippedTests() {
-      return skippedTests;
-    }
-
-    public List<TestResult> details() {
-      return details;
-    }
   }
 }

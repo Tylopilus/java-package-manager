@@ -9,7 +9,7 @@ import org.w3c.dom.*;
 
 /**
  * Resolves parent POM chains using immutable PomInfo records.
- * Uses Java 21 pattern matching and virtual thread-friendly design.
+ * Uses Java 25 pattern matching and virtual thread-friendly design.
  */
 public class ParentPomResolver {
 
