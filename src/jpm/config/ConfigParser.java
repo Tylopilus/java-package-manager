@@ -60,7 +60,27 @@ public class ConfigParser {
             }
         }
 
-        return new JpmConfig(pkg, deps, profiles);
+        // Parse fmt section
+        var fmt = parseFmt(toml);
+
+        return new JpmConfig(pkg, deps, profiles, fmt);
+    }
+
+    private static FmtConfig parseFmt(Toml toml) {
+        var fmtToml = toml.getTable("fmt");
+        if (fmtToml == null) {
+            return new FmtConfig();
+        }
+
+        var lineLength = fmtToml.getLong("line-length");
+        var organizeImports = fmtToml.getBoolean("organize-imports");
+        var skipPatterns = fmtToml.getList("skip-patterns");
+
+        return new FmtConfig(
+                lineLength != null ? lineLength.intValue() : null,
+                organizeImports,
+                skipPatterns != null ? skipPatterns.stream().map(Object::toString).toList() : null
+        );
     }
     
     /**
@@ -182,7 +202,7 @@ public class ConfigParser {
         var config = load(configFile);
         if (config == null) {
             var pkg = new JpmConfig.PackageConfig(null, "0.1.0", "21");
-            config = new JpmConfig(pkg, new HashMap<>(), new HashMap<>());
+            config = new JpmConfig(pkg, new HashMap<>(), new HashMap<>(), new FmtConfig());
         }
         return config;
     }

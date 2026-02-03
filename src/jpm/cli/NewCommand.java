@@ -1,6 +1,7 @@
 package jpm.cli;
 
 import jpm.config.ConfigParser;
+import jpm.config.FmtConfig;
 import jpm.config.JpmConfig;
 import jpm.utils.FileUtils;
 import picocli.CommandLine.Command;
@@ -32,7 +33,7 @@ public class NewCommand implements Callable<Integer> {
             
             // Create jpm.toml
             var pkg = new JpmConfig.PackageConfig(projectName, "0.1.0", "21");
-            var config = new JpmConfig(pkg, new java.util.HashMap<>(), new java.util.HashMap<>());
+            var config = new JpmConfig(pkg, new java.util.HashMap<>(), new java.util.HashMap<>(), new FmtConfig());
             
             var configFile = new File(projectDir, "jpm.toml");
             ConfigParser.save(config, configFile);

@@ -1,167 +1,183 @@
 package jpm.build;
 
+import jpm.build.format.Formatter;
+import jpm.build.format.FormatterException;
+import jpm.build.format.PalantirFormatter;
+import jpm.config.FmtConfig;
+import jpm.utils.FileUtils;
+
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Formats Java source code using Palantir Java Format.
- * Provides both formatting and checking capabilities.
+ * High-level code formatter orchestrator.
+ * Uses a pluggable Formatter implementation for actual formatting.
  */
 public class CodeFormatter {
-    
-    private static final String PALANTIR_VERSION = "2.50.0";
-    
+
+    private final Formatter formatter;
+    private final FmtConfig config;
+
+    public CodeFormatter() {
+        this(new PalantirFormatter(), new FmtConfig());
+    }
+
+    public CodeFormatter(FmtConfig config) {
+        this(new PalantirFormatter(), config);
+    }
+
+    public CodeFormatter(Formatter formatter, FmtConfig config) {
+        this.formatter = formatter;
+        this.config = config;
+    }
+
     /**
-     * Formats a file or directory of Java files.
-     * 
-     * @param path file or directory to format
+     * Formats all Java files at the given path.
+     *
+     * @param path the file or directory to format
      * @param checkOnly if true, only check formatting without modifying files
-     * @param skipPatterns glob patterns to skip
-     * @param lineLength maximum line length
      * @return FormatResult with statistics
-     * @throws IOException if formatting fails
+     * @throws IOException if file operations fail
      */
-    public FormatResult formatPath(File path, boolean checkOnly, String[] skipPatterns, int lineLength) throws IOException {
+    public FormatResult formatPath(File path, boolean checkOnly) throws IOException {
         var javaFiles = new ArrayList<File>();
-        collectJavaFiles(path, javaFiles, skipPatterns);
-        
-        var totalFiles = javaFiles.size();
+        collectJavaFiles(path, javaFiles);
+
+        var totalFiles = 0;
         var formattedFiles = 0;
         var skippedFiles = 0;
         var failedFiles = 0;
         var unformattedFiles = new ArrayList<String>();
-        
-        // Check if Palantir formatter is available
-        var formatterJar = getPalantirJar();
-        if (!formatterJar.exists()) {
-            // Fallback: just count files and report
-            System.err.println("Warning: Palantir Java Format not available. Run bootstrap to install.");
-            return new FormatResult(totalFiles, 0, 0, 0, unformattedFiles);
-        }
-        
-        for (var javaFile : javaFiles) {
+
+        for (var file : javaFiles) {
+            totalFiles++;
+
             try {
-                if (checkOnly) {
-                    // Check if file is formatted correctly
-                    if (!isFormatted(javaFile, formatterJar, lineLength)) {
-                        unformattedFiles.add(javaFile.getPath());
+                var original = Files.readString(file.toPath(), StandardCharsets.UTF_8);
+                String formatted;
+
+                if (config.shouldOrganizeImports()) {
+                    formatted = formatter.formatAndOrganizeImports(original);
+                } else {
+                    formatted = formatter.format(original);
+                }
+
+                if (formatter.isEquivalent(original, formatted)) {
+                    // File is already formatted
+                    if (checkOnly) {
+                        // In check mode, this is a "correct" file
                     }
                 } else {
-                    // Format the file
-                    if (formatFile(javaFile, formatterJar, lineLength)) {
-                        formattedFiles++;
+                    // File needs formatting
+                    if (checkOnly) {
+                        unformattedFiles.add(file.getPath());
                     } else {
-                        failedFiles++;
+                        // Write formatted content
+                        FileUtils.writeFile(file, formatted);
+                        formattedFiles++;
                     }
                 }
-            } catch (Exception e) {
-                System.err.println("Error processing " + javaFile + ": " + e.getMessage());
+            } catch (FormatterException e) {
+                System.err.println("  Error formatting " + file + ": " + e.getMessage());
                 failedFiles++;
             }
         }
-        
+
         return new FormatResult(totalFiles, formattedFiles, skippedFiles, failedFiles, unformattedFiles);
     }
-    
+
     /**
-     * Recursively collects all .java files from a directory.
+     * Formats a single Java file.
+     *
+     * @param file the file to format
+     * @param checkOnly if true, only check formatting without modifying
+     * @return true if file was formatted (or needs formatting in check mode)
+     * @throws IOException if file operations fail
      */
-    private void collectJavaFiles(File file, List<File> javaFiles, String[] skipPatterns) {
-        if (shouldSkip(file, skipPatterns)) {
+    public boolean formatFile(File file, boolean checkOnly) throws IOException {
+        if (!file.exists() || !file.getName().endsWith(".java")) {
+            return false;
+        }
+
+        try {
+            var original = Files.readString(file.toPath(), StandardCharsets.UTF_8);
+            String formatted;
+
+            if (config.shouldOrganizeImports()) {
+                formatted = formatter.formatAndOrganizeImports(original);
+            } else {
+                formatted = formatter.format(original);
+            }
+
+            if (formatter.isEquivalent(original, formatted)) {
+                return false; // No changes needed
+            }
+
+            if (!checkOnly) {
+                FileUtils.writeFile(file, formatted);
+            }
+
+            return true;
+        } catch (FormatterException e) {
+            System.err.println("  Error formatting " + file + ": " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Gets the underlying formatter implementation name.
+     *
+     * @return the formatter name and version
+     */
+    public String getFormatterInfo() {
+        return formatter.getName() + " " + formatter.getVersion();
+    }
+
+    private void collectJavaFiles(File file, List<File> javaFiles) {
+        if (shouldSkip(file)) {
             return;
         }
-        
+
         if (file.isDirectory()) {
             var children = file.listFiles();
             if (children != null) {
                 for (var child : children) {
-                    collectJavaFiles(child, javaFiles, skipPatterns);
+                    collectJavaFiles(child, javaFiles);
                 }
             }
         } else if (file.getName().endsWith(".java")) {
             javaFiles.add(file);
         }
     }
-    
-    /**
-     * Checks if a file should be skipped based on patterns.
-     */
-    private boolean shouldSkip(File file, String[] skipPatterns) {
-        if (skipPatterns == null) return false;
-        
+
+    private boolean shouldSkip(File file) {
+        var patterns = config.getSkipPatterns();
+        if (patterns.isEmpty()) {
+            return false;
+        }
+
         var path = file.getPath();
-        for (var pattern : skipPatterns) {
-            // Simple glob matching (can be improved)
-            var regex = pattern.replace("**", ".*").replace("*", "[^/]*");
-            if (path.matches(regex)) {
+        for (var pattern : patterns) {
+            if (matchesGlob(path, pattern)) {
                 return true;
             }
         }
         return false;
     }
-    
-    /**
-     * Gets the Palantir Java Format JAR location.
-     */
-    private File getPalantirJar() {
-        var home = System.getProperty("user.home");
-        return new File(home, ".jpm/lib/palantir-java-format-" + PALANTIR_VERSION + "-all.jar");
+
+    private boolean matchesGlob(String path, String pattern) {
+        // Convert glob pattern to regex
+        var regex = pattern
+                .replace("**", "###DOUBLESTAR###")
+                .replace("*", "[^/]*")
+                .replace("###DOUBLESTAR###", ".*");
+        return path.matches(regex);
     }
-    
-    /**
-     * Checks if a file is already formatted.
-     * Returns true if formatted correctly, false if needs formatting.
-     */
-    private boolean isFormatted(File javaFile, File formatterJar, int lineLength) throws IOException {
-        var command = new ArrayList<String>();
-        command.add("java");
-        command.add("-jar");
-        command.add(formatterJar.getAbsolutePath());
-        command.add("--check");
-        command.add(javaFile.getAbsolutePath());
-        
-        var pb = new ProcessBuilder(command);
-        pb.inheritIO();
-        
-        try {
-            var process = pb.start();
-            var exitCode = process.waitFor();
-            return exitCode == 0; // 0 means already formatted
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return false;
-        }
-    }
-    
-    /**
-     * Formats a single Java file.
-     * Returns true if successful, false otherwise.
-     */
-    private boolean formatFile(File javaFile, File formatterJar, int lineLength) throws IOException {
-        var command = new ArrayList<String>();
-        command.add("java");
-        command.add("-jar");
-        command.add(formatterJar.getAbsolutePath());
-        command.add("--replace");
-        command.add(javaFile.getAbsolutePath());
-        
-        var pb = new ProcessBuilder(command);
-        pb.inheritIO();
-        
-        try {
-            var process = pb.start();
-            var exitCode = process.waitFor();
-            return exitCode == 0;
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return false;
-        }
-    }
-    
+
     /**
      * Result of a formatting operation.
      */
@@ -171,23 +187,23 @@ public class CodeFormatter {
             int skippedFiles,
             int failedFiles,
             List<String> unformattedFiles) {
-        
+
         public int totalFiles() {
             return totalFiles;
         }
-        
+
         public int formattedFiles() {
             return formattedFiles;
         }
-        
+
         public int skippedFiles() {
             return skippedFiles;
         }
-        
+
         public int failedFiles() {
             return failedFiles;
         }
-        
+
         public List<String> unformattedFiles() {
             return unformattedFiles;
         }

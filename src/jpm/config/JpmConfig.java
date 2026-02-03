@@ -11,11 +11,12 @@ import java.util.Map;
 public record JpmConfig(
     PackageConfig package_,
     Map<String, String> dependencies,
-    Map<String, ProfileConfig> profiles
+    Map<String, ProfileConfig> profiles,
+    FmtConfig fmt
 ) {
 
     public JpmConfig() {
-        this(new PackageConfig(), new HashMap<>(), new HashMap<>());
+        this(new PackageConfig(), new HashMap<>(), new HashMap<>(), new FmtConfig());
     }
     
     /**
@@ -51,12 +52,12 @@ public record JpmConfig(
     
     /**
      * Creates a copy of this config with a new package configuration.
-     * 
+     *
      * @param newPackage the new package config
      * @return a new JpmConfig instance
      */
     public JpmConfig withPackage(PackageConfig newPackage) {
-        return new JpmConfig(newPackage, new HashMap<>(dependencies), new HashMap<>(profiles));
+        return new JpmConfig(newPackage, new HashMap<>(dependencies), new HashMap<>(profiles), fmt);
     }
 
     /**
@@ -66,7 +67,7 @@ public record JpmConfig(
      * @return a new JpmConfig instance
      */
     public JpmConfig withDependencies(Map<String, String> newDependencies) {
-        return new JpmConfig(package_, new HashMap<>(newDependencies), new HashMap<>(profiles));
+        return new JpmConfig(package_, new HashMap<>(newDependencies), new HashMap<>(profiles), fmt);
     }
 
     /**
@@ -76,6 +77,16 @@ public record JpmConfig(
      * @return a new JpmConfig instance
      */
     public JpmConfig withProfiles(Map<String, ProfileConfig> newProfiles) {
-        return new JpmConfig(package_, new HashMap<>(dependencies), new HashMap<>(newProfiles));
+        return new JpmConfig(package_, new HashMap<>(dependencies), new HashMap<>(newProfiles), fmt);
+    }
+
+    /**
+     * Creates a copy of this config with new fmt configuration.
+     *
+     * @param newFmt the new fmt config
+     * @return a new JpmConfig instance
+     */
+    public JpmConfig withFmt(FmtConfig newFmt) {
+        return new JpmConfig(package_, new HashMap<>(dependencies), new HashMap<>(profiles), newFmt);
     }
 }

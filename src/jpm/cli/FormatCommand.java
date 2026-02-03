@@ -1,6 +1,9 @@
 package jpm.cli;
 
 import jpm.build.CodeFormatter;
+import jpm.config.ConfigParser;
+import jpm.config.FmtConfig;
+import jpm.config.JpmConfig;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
@@ -10,65 +13,82 @@ import java.util.concurrent.Callable;
 
 /**
  * Format command for Java source code using Palantir Java Format.
- * 
+ *
  * Features:
  * - Format all Java files in src/ and src/test/java/
  * - Check mode for CI integration (fails if unformatted)
  * - Support for specific file or directory formatting
- * - Respects .gitignore and skip patterns
+ * - Respects .gitignore and skip patterns from jpm.toml
+ *
+ * Configuration is read from jpm.toml [fmt] section:
+ *   [fmt]
+ *   line-length = 120
+ *   organize-imports = true
+ *   skip-patterns = ["**&#47;target&#47;**"]
+ * 
  */
 @Command(
     name = "fmt",
-    description = "Format Java source code using Palantir Java Format",
+    description = "Format Java source code",
     mixinStandardHelpOptions = true
 )
 public class FormatCommand implements Callable<Integer> {
-    
+
     @Parameters(arity = "0..*", description = "Files or directories to format (default: src/)")
     private String[] targets;
-    
+
     @Option(
         names = {"--check"},
         description = "Check formatting without modifying files (fails if unformatted, for CI)"
     )
     private boolean check;
-    
+
     @Option(
-        names = {"--write"},
-        description = "Actually format files (default behavior, use --check to disable)"
+        names = {"--organize-imports"},
+        description = "Organize imports while formatting (overrides config)"
     )
-    private boolean write;
-    
+    private boolean organizeImports;
+
     @Option(
-        names = {"--skip-patterns"},
-        description = "Glob patterns to skip (e.g., '**/generated/**')",
-        split = ","
+        names = {"--no-organize-imports"},
+        description = "Skip import organization"
     )
-    private String[] skipPatterns;
-    
-    @Option(
-        names = {"--line-length"},
-        description = "Maximum line length",
-        defaultValue = "120"
-    )
-    private int lineLength;
-    
+    private boolean noOrganizeImports;
+
     @Override
     public Integer call() {
         try {
-            var formatter = new CodeFormatter();
-            
+            // Load configuration from jpm.toml
+            var configFile = new File("jpm.toml");
+            FmtConfig fmtConfig;
+
+            if (configFile.exists()) {
+                var jpmConfig = ConfigParser.load(configFile);
+                fmtConfig = jpmConfig != null ? jpmConfig.fmt() : new FmtConfig();
+            } else {
+                fmtConfig = new FmtConfig();
+            }
+
+            // CLI flags override config
+            if (organizeImports) {
+                fmtConfig = new FmtConfig(fmtConfig.lineLength(), true, fmtConfig.skipPatterns());
+            } else if (noOrganizeImports) {
+                fmtConfig = new FmtConfig(fmtConfig.lineLength(), false, fmtConfig.skipPatterns());
+            }
+
+            var formatter = new CodeFormatter(fmtConfig);
+
             // Default to src/ if no targets specified
             if (targets == null || targets.length == 0) {
                 targets = new String[]{"src"};
             }
-            
+
             var totalFiles = 0;
             var formattedFiles = 0;
             var skippedFiles = 0;
             var failedFiles = 0;
             var allUnformattedFiles = new java.util.ArrayList<String>();
-            
+
             // Process each target
             for (var target : targets) {
                 var file = new File(target);
@@ -77,14 +97,14 @@ public class FormatCommand implements Callable<Integer> {
                     failedFiles++;
                     continue;
                 }
-                
-                var result = formatter.formatPath(file, check, skipPatterns, lineLength);
+
+                var result = formatter.formatPath(file, check);
                 totalFiles += result.totalFiles();
                 formattedFiles += result.formattedFiles();
                 skippedFiles += result.skippedFiles();
                 failedFiles += result.failedFiles();
                 allUnformattedFiles.addAll(result.unformattedFiles());
-                
+
                 // Print per-file results in check mode
                 if (check && !result.unformattedFiles().isEmpty()) {
                     for (var unformatted : result.unformattedFiles()) {
@@ -92,7 +112,7 @@ public class FormatCommand implements Callable<Integer> {
                     }
                 }
             }
-            
+
             // Print summary
             System.out.println();
             if (check) {
@@ -102,22 +122,22 @@ public class FormatCommand implements Callable<Integer> {
                 System.out.println("  Needs format:   " + allUnformattedFiles.size());
                 System.out.println("  Skipped:        " + skippedFiles);
                 System.out.println("  Failed:         " + failedFiles);
-                
+
                 if (!allUnformattedFiles.isEmpty()) {
                     System.out.println();
                     System.out.println("Run 'jpm fmt' to fix formatting issues.");
                     return 1;
                 }
             } else {
-                System.out.println("Format Results:");
+                System.out.println("Format Results (" + formatter.getFormatterInfo() + "):");
                 System.out.println("  Total files:    " + totalFiles);
                 System.out.println("  Formatted:      " + formattedFiles);
                 System.out.println("  Skipped:        " + skippedFiles);
                 System.out.println("  Failed:         " + failedFiles);
             }
-            
+
             return failedFiles > 0 ? 1 : 0;
-            
+
         } catch (Exception e) {
             System.err.println("Error formatting code: " + e.getMessage());
             e.printStackTrace();
