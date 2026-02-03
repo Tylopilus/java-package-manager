@@ -12,8 +12,8 @@ BIN_DIR="$JPM_DIR/bin"
 
 echo "==> Rebuilding jpm..."
 
-# Classpath
-CLASSPATH="$LIB_DIR/picocli-4.7.6.jar:$LIB_DIR/toml4j-0.7.2.jar:$LIB_DIR/gson-2.10.1.jar"
+# Classpath - include Palantir formatter and all its dependencies
+CLASSPATH="$LIB_DIR/picocli-4.7.6.jar:$LIB_DIR/palantir-java-format-2.86.0.jar:$LIB_DIR/palantir-java-format-spi-2.86.0.jar:$LIB_DIR/functionaljava-4.8.jar:$LIB_DIR/guava-33.5.0-jre.jar:$LIB_DIR/failureaccess-1.0.2.jar:$LIB_DIR/jackson-core-2.18.2.jar:$LIB_DIR/jackson-databind-2.18.2.jar:$LIB_DIR/jackson-annotations-2.18.2.jar:$LIB_DIR/jackson-datatype-jdk8-2.18.2.jar:$LIB_DIR/jackson-module-parameter-names-2.18.2.jar:$LIB_DIR/jsr305-3.0.2.jar:$LIB_DIR/error_prone_annotations-2.36.0.jar:$LIB_DIR/toml4j-0.7.2.jar:$LIB_DIR/gson-2.10.1.jar"
 
 # Find all Java source files (excluding tests)
 SOURCE_FILES=$(find "$PROJECT_ROOT/src" -name "*.java" ! -path "*/test/*")
@@ -27,6 +27,18 @@ javac --release 21 -cp "$CLASSPATH" -d "$TARGET_DIR" $SOURCE_FILES
 # Create JAR
 echo "  -> Creating jpm.jar..."
 jar cfm "$BIN_DIR/jpm.jar" "$TARGET_DIR/MANIFEST.MF" -C "$TARGET_DIR" .
+
+# Update wrapper script with all dependencies
+echo "  -> Updating wrapper script..."
+# JVM arguments required for Palantir Java Format (access to jdk.compiler internals)
+JVM_EXPORTS="--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED"
+
+cat > "$BIN_DIR/jpm" << EOF
+#!/bin/bash
+java $JVM_EXPORTS -cp "$BIN_DIR/jpm.jar:$CLASSPATH" jpm.Main "\$@"
+EOF
+
+chmod +x "$BIN_DIR/jpm"
 
 echo "==> Rebuild complete!"
 echo ""

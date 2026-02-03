@@ -66,13 +66,42 @@ if [ ! -f "$LIB_DIR/$JUNIT_PLATFORM_JAR" ]; then
 fi
 
 # Download Palantir Java Format (for code formatting)
-PALANTIR_VERSION="2.50.0"
-PALANTIR_JAR="palantir-java-format-${PALANTIR_VERSION}-all.jar"
+PALANTIR_VERSION="2.86.0"
+PALANTIR_JAR="palantir-java-format-${PALANTIR_VERSION}.jar"
 PALANTIR_URL="https://repo1.maven.org/maven2/com/palantir/javaformat/palantir-java-format/${PALANTIR_VERSION}/${PALANTIR_JAR}"
 
 if [ ! -f "$LIB_DIR/$PALANTIR_JAR" ]; then
     echo "  -> Downloading palantir-java-format ${PALANTIR_VERSION}..."
     curl -sL "$PALANTIR_URL" -o "$LIB_DIR/$PALANTIR_JAR" || echo "  Warning: Failed to download Palantir formatter"
+fi
+
+# Download Palantir Java Format SPI (required for FormatterException)
+PALANTIR_SPI_JAR="palantir-java-format-spi-${PALANTIR_VERSION}.jar"
+PALANTIR_SPI_URL="https://repo1.maven.org/maven2/com/palantir/javaformat/palantir-java-format-spi/${PALANTIR_VERSION}/${PALANTIR_SPI_JAR}"
+
+if [ ! -f "$LIB_DIR/$PALANTIR_SPI_JAR" ]; then
+    echo "  -> Downloading palantir-java-format-spi ${PALANTIR_VERSION}..."
+    curl -sL "$PALANTIR_SPI_URL" -o "$LIB_DIR/$PALANTIR_SPI_JAR" || echo "  Warning: Failed to download Palantir SPI"
+fi
+
+# Download Guava (required by Palantir)
+GUAVA_VERSION="33.0.0-jre"
+GUAVA_JAR="guava-${GUAVA_VERSION}.jar"
+GUAVA_URL="https://repo1.maven.org/maven2/com/google/guava/guava/${GUAVA_VERSION}/${GUAVA_JAR}"
+
+if [ ! -f "$LIB_DIR/$GUAVA_JAR" ]; then
+    echo "  -> Downloading guava ${GUAVA_VERSION}..."
+    curl -sL "$GUAVA_URL" -o "$LIB_DIR/$GUAVA_JAR" || echo "  Warning: Failed to download Guava"
+fi
+
+# Download Guava failureaccess (transitive dependency)
+FAILUREACCESS_VERSION="1.0.2"
+FAILUREACCESS_JAR="failureaccess-${FAILUREACCESS_VERSION}.jar"
+FAILUREACCESS_URL="https://repo1.maven.org/maven2/com/google/guava/failureaccess/${FAILUREACCESS_VERSION}/${FAILUREACCESS_JAR}"
+
+if [ ! -f "$LIB_DIR/$FAILUREACCESS_JAR" ]; then
+    echo "  -> Downloading failureaccess ${FAILUREACCESS_VERSION}..."
+    curl -sL "$FAILUREACCESS_URL" -o "$LIB_DIR/$FAILUREACCESS_JAR" || echo "  Warning: Failed to download failureaccess"
 fi
 
 # Create source directories
@@ -131,7 +160,7 @@ TARGET_DIR="$PROJECT_ROOT/target/classes"
 mkdir -p "$TARGET_DIR"
 
 # Build classpath
-CLASSPATH="$LIB_DIR/$PICOLI_JAR:$LIB_DIR/$TOML4J_JAR:$LIB_DIR/$GSON_JAR"
+CLASSPATH="$LIB_DIR/$PICOLI_JAR:$LIB_DIR/$PALANTIR_JAR:$LIB_DIR/$PALANTIR_SPI_JAR:$LIB_DIR/$GUAVA_JAR:$LIB_DIR/$FAILUREACCESS_JAR:$LIB_DIR/$TOML4J_JAR:$LIB_DIR/$GSON_JAR"
 
 # Compile all Java files with Java 21 bytecode target
 # Using --release 21 ensures Java 21 API compatibility and bytecode version
@@ -159,7 +188,7 @@ JAR_FILE="$BIN_DIR/jpm.jar"
 cat > "$TARGET_DIR/MANIFEST.MF" << EOF
 Manifest-Version: 1.0
 Main-Class: jpm.Main
-Class-Path: $LIB_DIR/$PICOLI_JAR $LIB_DIR/$TOML4J_JAR $LIB_DIR/$GSON_JAR
+Class-Path: $LIB_DIR/$PICOLI_JAR $LIB_DIR/$PALANTIR_JAR $LIB_DIR/$PALANTIR_SPI_JAR $LIB_DIR/$GUAVA_JAR $LIB_DIR/$FAILUREACCESS_JAR $LIB_DIR/$TOML4J_JAR $LIB_DIR/$GSON_JAR
 EOF
 
 # Package JAR
@@ -169,7 +198,7 @@ jar cfm "$JAR_FILE" "$TARGET_DIR/MANIFEST.MF" -C "$TARGET_DIR" .
 echo "  -> Creating jpm wrapper script..."
 cat > "$BIN_DIR/jpm" << EOF
 #!/bin/bash
-java -cp "$JAR_FILE:$LIB_DIR/$PICOLI_JAR:$LIB_DIR/$TOML4J_JAR:$LIB_DIR/$GSON_JAR" jpm.Main "\$@"
+java -cp "$JAR_FILE:$LIB_DIR/$PICOLI_JAR:$LIB_DIR/$PALANTIR_JAR:$LIB_DIR/$PALANTIR_SPI_JAR:$LIB_DIR/$GUAVA_JAR:$LIB_DIR/$FAILUREACCESS_JAR:$LIB_DIR/$TOML4J_JAR:$LIB_DIR/$GSON_JAR" jpm.Main "\$@"
 EOF
 
 chmod +x "$BIN_DIR/jpm"
