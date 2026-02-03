@@ -1,0 +1,9 @@
+[package]
+name = "bla"
+version = "0.1.0"
+java-version = "21"
+
+[dependencies]
+"com.fasterxml.jackson.core:jackson-databind" = "2.17.2"
+"org.slf4j:slf4j-simple" = "2.0.9"
+"org.slf4j:slf4j-api" = "2.0.9"

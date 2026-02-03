@@ -1,0 +1,19 @@
+# jpm build output
+target/
+
+# IDE files (generated, not committed)
+.idea/
+*.iml
+.classpath
+.settings/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Local env files
+.env
+.env.local
