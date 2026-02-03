@@ -43,7 +43,7 @@ public class ClasspathGenerator {
         if (!config.getDependencies().isEmpty()) {
             try {
                 DependencyResolver resolver = new DependencyResolver();
-                List<DependencyResolver.ResolvedDependency> deps = resolver.resolveAll(config.getDependencies());
+                List<DependencyResolver.ResolvedDependency> deps = resolver.resolveWithLockfile(projectDir, config, false);
                 for (DependencyResolver.ResolvedDependency dep : deps) {
                     if (dep.jarFile.exists()) {
                         xml.append("\t<classpathentry kind=\"lib\" path=\"").append(escapeXml(dep.jarFile.getAbsolutePath())).append("\"/>\n");

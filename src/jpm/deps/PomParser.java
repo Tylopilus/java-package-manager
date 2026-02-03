@@ -23,8 +23,8 @@ public class PomParser {
         }
         
         public boolean shouldInclude() {
-            // Include only compile scope (or null/empty scope which defaults to compile)
-            // Exclude: test, provided, runtime (runtime is technically needed at runtime but not compile)
+            // Include compile and runtime scope (or null/empty scope which defaults to compile)
+            // Exclude: test, provided
             if ("test".equals(scope) || "provided".equals(scope)) {
                 return false;
             }
@@ -36,8 +36,14 @@ public class PomParser {
     }
     
     private final DocumentBuilder docBuilder;
+    private final ParentPomResolver parentResolver;
     
     public PomParser() throws Exception {
+        this(null);
+    }
+    
+    public PomParser(ParentPomResolver parentResolver) throws Exception {
+        this.parentResolver = parentResolver;
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         factory.setNamespaceAware(false);
         factory.setValidating(false);
@@ -49,6 +55,10 @@ public class PomParser {
     }
     
     public List<Dependency> parseDependencies(String pomContent) throws Exception {
+        return parseDependencies(pomContent, null, null, null);
+    }
+    
+    public List<Dependency> parseDependencies(String pomContent, String groupId, String artifactId, String version) throws Exception {
         List<Dependency> deps = new ArrayList<>();
         
         if (pomContent == null || pomContent.trim().isEmpty()) {
@@ -58,11 +68,20 @@ public class PomParser {
         InputStream is = new ByteArrayInputStream(pomContent.getBytes());
         Document doc = docBuilder.parse(is);
         
-        // Extract properties for version substitution
-        Map<String, String> properties = extractProperties(doc);
+        // Get current POM coordinates (may be passed in or parsed from POM)
+        if (groupId == null) {
+            groupId = getTextContent(doc.getDocumentElement(), "groupId");
+        }
+        if (artifactId == null) {
+            artifactId = getTextContent(doc.getDocumentElement(), "artifactId");
+        }
+        if (version == null) {
+            version = getTextContent(doc.getDocumentElement(), "version");
+        }
         
-        // Extract dependency management versions
-        Map<String, String> managedVersions = extractDependencyManagement(doc);
+        // Build full property map including parent chain
+        Map<String, String> allProperties = buildFullPropertyMap(doc, groupId, artifactId, version);
+        Map<String, String> allManagedVersions = buildFullManagedVersionsMap(doc);
         
         // Find dependencies
         NodeList depNodes = doc.getElementsByTagName("dependency");
@@ -74,35 +93,120 @@ public class PomParser {
                 continue;
             }
             
-            String groupId = getTextContent(depElement, "groupId");
-            String artifactId = getTextContent(depElement, "artifactId");
-            String version = getTextContent(depElement, "version");
-            String scope = getTextContent(depElement, "scope");
-            String optional = getTextContent(depElement, "optional");
+            String depGroupId = getTextContent(depElement, "groupId");
+            String depArtifactId = getTextContent(depElement, "artifactId");
+            String depVersion = getTextContent(depElement, "version");
+            String depScope = getTextContent(depElement, "scope");
+            String depOptional = getTextContent(depElement, "optional");
             
-            // Substitute properties
-            if (version != null) {
-                version = substituteProperties(version, properties);
+            // Substitute properties in version
+            if (depVersion != null) {
+                depVersion = substituteProperties(depVersion, allProperties);
             }
             
             // Use managed version if available and no version specified
-            if (version == null || version.isEmpty()) {
-                String key = groupId + ":" + artifactId;
-                version = managedVersions.get(key);
+            if ((depVersion == null || depVersion.isEmpty()) && depGroupId != null && depArtifactId != null) {
+                String key = depGroupId + ":" + depArtifactId;
+                depVersion = allManagedVersions.get(key);
+                if (depVersion != null) {
+                    depVersion = substituteProperties(depVersion, allProperties);
+                }
             }
             
-            if (groupId != null && artifactId != null) {
+            // Substitute properties in groupId and artifactId too (rare but possible)
+            if (depGroupId != null) {
+                depGroupId = substituteProperties(depGroupId, allProperties);
+            }
+            if (depArtifactId != null) {
+                depArtifactId = substituteProperties(depArtifactId, allProperties);
+            }
+            
+            if (depGroupId != null && depArtifactId != null) {
                 deps.add(new Dependency(
-                    groupId, 
-                    artifactId, 
-                    version, 
-                    scope, 
-                    "true".equals(optional)
+                    depGroupId, 
+                    depArtifactId, 
+                    depVersion, 
+                    depScope, 
+                    "true".equals(depOptional)
                 ));
             }
         }
         
         return deps;
+    }
+    
+    private Map<String, String> buildFullPropertyMap(Document doc, String groupId, String artifactId, String version) {
+        Map<String, String> allProps = new HashMap<>();
+        
+        // Add built-in Maven properties first (lowest priority)
+        if (groupId != null) {
+            allProps.put("${project.groupId}", groupId);
+            allProps.put("${pom.groupId}", groupId);
+        }
+        if (artifactId != null) {
+            allProps.put("${project.artifactId}", artifactId);
+            allProps.put("${pom.artifactId}", artifactId);
+        }
+        if (version != null) {
+            allProps.put("${project.version}", version);
+            allProps.put("${pom.version}", version);
+            allProps.put("${version}", version);
+        }
+        
+        // Extract current POM properties
+        Map<String, String> currentProps = extractProperties(doc);
+        
+        // If we have parent resolver, resolve parent chain and merge
+        if (parentResolver != null && groupId != null && artifactId != null && version != null) {
+            try {
+                PomInfo parentInfo = parentResolver.resolveParentChain(groupId, artifactId, version, 0, new HashSet<>());
+                if (parentInfo != null) {
+                    Map<String, String> inheritedProps = parentInfo.getAllProperties();
+                    // Parent properties override built-ins, current overrides parent
+                    allProps.putAll(inheritedProps);
+                }
+            } catch (IOException e) {
+                System.err.println("  Warning: Failed to resolve parent chain for properties: " + e.getMessage());
+            }
+        }
+        
+        // Current POM properties have highest priority
+        allProps.putAll(currentProps);
+        
+        return allProps;
+    }
+    
+    private Map<String, String> buildFullManagedVersionsMap(Document doc) {
+        Map<String, String> allManaged = new HashMap<>();
+        
+        // Extract current POM managed versions
+        Map<String, String> currentManaged = extractDependencyManagement(doc);
+        
+        // If we have parent resolver, get inherited managed versions
+        if (parentResolver != null) {
+            // Try to get parent info from doc
+            String groupId = getTextContent(doc.getDocumentElement(), "groupId");
+            String artifactId = getTextContent(doc.getDocumentElement(), "artifactId");
+            String version = getTextContent(doc.getDocumentElement(), "version");
+            
+            if (groupId != null && artifactId != null && version != null) {
+                try {
+                    PomInfo parentInfo = parentResolver.resolveParentChain(groupId, artifactId, version, 0, new HashSet<>());
+                    if (parentInfo != null) {
+                        Map<String, String> inheritedManaged = parentInfo.getAllManagedVersions();
+                        // Parent managed versions are base, current overrides
+                        allManaged.putAll(inheritedManaged);
+                    }
+                } catch (IOException e) {
+                    // Non-fatal, just don't inherit managed versions
+                }
+            }
+        }
+        
+        // Current POM managed versions override inherited
+        allManaged.putAll(currentManaged);
+        
+        return allManaged;
     }
     
     private Map<String, String> extractProperties(Document doc) {
@@ -117,8 +221,11 @@ public class PomParser {
                 if (node.getNodeType() == Node.ELEMENT_NODE) {
                     String name = node.getNodeName();
                     String value = node.getTextContent();
-                    props.put(name, value);
-                    props.put("${" + name + "}", value);
+                    if (value != null) {
+                        value = value.trim();
+                        props.put(name, value);
+                        props.put("${" + name + "}", value);
+                    }
                 }
             }
         }
@@ -136,12 +243,12 @@ public class PomParser {
             
             for (int i = 0; i < depNodes.getLength(); i++) {
                 Element dep = (Element) depNodes.item(i);
-                String groupId = getTextContent(dep, "groupId");
-                String artifactId = getTextContent(dep, "artifactId");
-                String version = getTextContent(dep, "version");
+                String depGroupId = getTextContent(dep, "groupId");
+                String depArtifactId = getTextContent(dep, "artifactId");
+                String depVersion = getTextContent(dep, "version");
                 
-                if (groupId != null && artifactId != null && version != null) {
-                    managed.put(groupId + ":" + artifactId, version);
+                if (depGroupId != null && depArtifactId != null && depVersion != null) {
+                    managed.put(depGroupId + ":" + depArtifactId, depVersion.trim());
                 }
             }
         }
@@ -169,7 +276,8 @@ public class PomParser {
     private String getTextContent(Element parent, String tagName) {
         NodeList nodes = parent.getElementsByTagName(tagName);
         if (nodes.getLength() > 0) {
-            return nodes.item(0).getTextContent().trim();
+            String content = nodes.item(0).getTextContent();
+            return content != null ? content.trim() : null;
         }
         return null;
     }
@@ -178,7 +286,11 @@ public class PomParser {
         if (value == null) return null;
         
         String result = value;
-        for (Map.Entry<String, String> entry : properties.entrySet()) {
+        // Sort by longest key first to avoid partial substitutions
+        List<Map.Entry<String, String>> entries = new ArrayList<>(properties.entrySet());
+        entries.sort((a, b) -> Integer.compare(b.getKey().length(), a.getKey().length()));
+        
+        for (Map.Entry<String, String> entry : entries) {
             result = result.replace(entry.getKey(), entry.getValue());
         }
         return result;

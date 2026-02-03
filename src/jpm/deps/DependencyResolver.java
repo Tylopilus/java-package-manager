@@ -1,5 +1,6 @@
 package jpm.deps;
 
+import jpm.config.JpmConfig;
 import jpm.utils.FileUtils;
 import jpm.utils.Version;
 
@@ -16,7 +17,7 @@ public class DependencyResolver {
     
     public DependencyResolver() throws Exception {
         this.mavenClient = new MavenClient();
-        this.pomParser = new PomParser();
+        this.pomParser = new PomParser(new ParentPomResolver(mavenClient));
         this.resolvedArtifacts = new HashSet<>();
         this.resolvedDeps = new HashMap<>();
     }
@@ -109,6 +110,29 @@ public class DependencyResolver {
             File jarFile = new File(cacheDir, artifactId + "-" + version + ".jar");
             resolvedDeps.put(key, new ResolvedDependency(groupId, artifactId, version, jarFile));
         }
+    }
+    
+    public List<ResolvedDependency> resolveWithLockfile(File projectDir, JpmConfig config, boolean forceResolve) throws IOException {
+        // If not forcing re-resolution, try to use lockfile
+        if (!forceResolve) {
+            if (LockfileManager.isLockfileValid(projectDir, config)) {
+                System.out.println("Using cached dependencies from jpm.lock");
+                return LockfileManager.loadFromLockfile(projectDir);
+            }
+        }
+        
+        // Perform full resolution
+        System.out.println("Resolving dependencies...");
+        List<ResolvedDependency> deps = resolveAll(config.getDependencies());
+        
+        // Save to lockfile
+        try {
+            LockfileManager.saveToLockfile(projectDir, deps, config);
+        } catch (IOException e) {
+            System.err.println("Warning: Failed to save lockfile: " + e.getMessage());
+        }
+        
+        return deps;
     }
     
     public static class ResolvedDependency {

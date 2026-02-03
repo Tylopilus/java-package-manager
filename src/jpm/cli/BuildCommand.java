@@ -8,6 +8,7 @@ import jpm.deps.CacheManager;
 import jpm.deps.DependencyResolver;
 import jpm.utils.FileUtils;
 import picocli.CommandLine.Command;
+import picocli.CommandLine.Option;
 
 import java.io.File;
 import java.io.IOException;
@@ -16,6 +17,10 @@ import java.util.concurrent.Callable;
 
 @Command(name = "build", description = "Build the project")
 public class BuildCommand implements Callable<Integer> {
+
+    @Option(names = {"--force-resolve"}, description = "Force re-resolution of dependencies, ignoring lockfile")
+    private boolean forceResolve;
+
     @Override
     public Integer call() {
         try {
@@ -34,9 +39,9 @@ public class BuildCommand implements Callable<Integer> {
             // Resolve dependencies
             String classpath = "";
             if (!config.getDependencies().isEmpty()) {
-                System.out.println("Resolving dependencies...");
                 DependencyResolver resolver = new DependencyResolver();
-                List<DependencyResolver.ResolvedDependency> deps = resolver.resolveAll(config.getDependencies());
+                File projectDir = new File(".");
+                List<DependencyResolver.ResolvedDependency> deps = resolver.resolveWithLockfile(projectDir, config, forceResolve);
                 classpath = ClasspathBuilder.buildClasspath(deps);
                 System.out.println("Resolved " + deps.size() + " dependencies");
             }
