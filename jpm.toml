@@ -1,0 +1,8 @@
+[package]
+name = "jpm"
+version = "0.1.0"
+java-version = "21"
+
+[dependencies]
+"info.picocli:picocli" = "4.7.6"
+"com.moandjiezana.toml:toml4j" = "0.7.2"
