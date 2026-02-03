@@ -6,6 +6,7 @@ import jpm.cli.RemoveCommand;
 import jpm.cli.BuildCommand;
 import jpm.cli.RunCommand;
 import jpm.cli.CleanCommand;
+import jpm.cli.SyncCommand;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 
@@ -20,7 +21,8 @@ import picocli.CommandLine.Command;
         RemoveCommand.class,
         BuildCommand.class,
         RunCommand.class,
-        CleanCommand.class
+        CleanCommand.class,
+        SyncCommand.class
     }
 )
 public class Main implements Runnable {

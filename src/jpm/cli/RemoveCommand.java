@@ -1,5 +1,6 @@
 package jpm.cli;
 
+import jpm.build.ClasspathGenerator;
 import jpm.config.ConfigParser;
 import jpm.config.JpmConfig;
 import jpm.deps.CacheManager;
@@ -24,13 +25,13 @@ public class RemoveCommand implements Callable<Integer> {
                 System.err.println("Error: No jpm.toml found.");
                 return 1;
             }
-            
+
             JpmConfig config = ConfigParser.load(configFile);
-            
+
             // Find dependency to remove
             String keyToRemove = null;
             String groupId = null;
-            
+
             for (String key : config.getDependencies().keySet()) {
                 String[] parts = key.split(":");
                 if (parts.length == 2) {
@@ -41,24 +42,31 @@ public class RemoveCommand implements Callable<Integer> {
                     }
                 }
             }
-            
+
             if (keyToRemove == null) {
                 System.err.println("Error: Dependency '" + artifact + "' not found in jpm.toml");
                 return 1;
             }
-            
+
             // Remove from config
             String version = config.getDependencies().get(keyToRemove);
             config.removeDependency(artifact);
             ConfigParser.save(config, configFile);
-            
+
             // Clean from cache
             CacheManager cacheManager = new CacheManager();
             cacheManager.cleanArtifact(groupId, artifact);
-            
+
             System.out.println("Removed " + keyToRemove + "=" + version);
+
+            // Auto-sync IDE configuration
+            System.out.println("Syncing IDE configuration...");
+            ClasspathGenerator generator = new ClasspathGenerator();
+            generator.generateClasspath(config, new File("."));
+            System.out.println("Updated .classpath file");
+
             return 0;
-            
+
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());
             e.printStackTrace();

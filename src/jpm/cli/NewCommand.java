@@ -45,6 +45,24 @@ public class NewCommand implements Callable<Integer> {
             File mainFile = new File(projectDir, "src/Main.java");
             FileUtils.writeFile(mainFile, mainClass);
             System.out.println("  Created src/Main.java");
+
+            // Create .project file (required for IDE integration)
+            String projectXml = generateProjectFile(projectName);
+            File projectFile = new File(projectDir, ".project");
+            FileUtils.writeFile(projectFile, projectXml);
+            System.out.println("  Created .project");
+
+            // Create initial .classpath file
+            String classpathXml = generateClasspath(config.getPackage().getJavaVersion());
+            File classpathFile = new File(projectDir, ".classpath");
+            FileUtils.writeFile(classpathFile, classpathXml);
+            System.out.println("  Created .classpath");
+
+            // Create .gitignore
+            String gitignore = generateGitignore();
+            File gitignoreFile = new File(projectDir, ".gitignore");
+            FileUtils.writeFile(gitignoreFile, gitignore);
+            System.out.println("  Created .gitignore");
             
             System.out.println("\nProject '" + projectName + "' created successfully!");
             System.out.println("  cd " + projectName);
@@ -64,5 +82,56 @@ public class NewCommand implements Callable<Integer> {
                "        System.out.println(\"Hello, " + projectName + "!\");\n" +
                "    }\n" +
                "}\n";
+    }
+
+    private String generateProjectFile(String projectName) {
+        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+               "<projectDescription>\n" +
+               "\t<name>" + projectName + "</name>\n" +
+               "\t<comment></comment>\n" +
+               "\t<projects>\n" +
+               "\t</projects>\n" +
+               "\t<buildSpec>\n" +
+               "\t\t<buildCommand>\n" +
+               "\t\t\t<name>org.eclipse.jdt.core.javabuilder</name>\n" +
+               "\t\t\t<arguments>\n" +
+               "\t\t\t</arguments>\n" +
+               "\t\t</buildCommand>\n" +
+               "\t</buildSpec>\n" +
+               "\t<natures>\n" +
+               "\t\t<nature>org.eclipse.jdt.core.javanature</nature>\n" +
+               "\t</natures>\n" +
+               "</projectDescription>\n";
+    }
+
+    private String generateClasspath(String javaVersion) {
+        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+               "<classpath>\n" +
+               "\t<classpathentry kind=\"src\" path=\"src\"/>\n" +
+               "\t<classpathentry kind=\"output\" path=\"target/classes\"/>\n" +
+               "\t<classpathentry kind=\"con\" path=\"org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-" + javaVersion + "\"/>\n" +
+               "</classpath>\n";
+    }
+
+    private String generateGitignore() {
+        return "# jpm build output\n" +
+               "target/\n" +
+               "\n" +
+               "# IDE files (generated, not committed)\n" +
+               ".idea/\n" +
+               "*.iml\n" +
+               ".classpath\n" +
+               ".settings/\n" +
+               "\n" +
+               "# OS files\n" +
+               ".DS_Store\n" +
+               "Thumbs.db\n" +
+               "\n" +
+               "# Logs\n" +
+               "*.log\n" +
+               "\n" +
+               "# Local env files\n" +
+               ".env\n" +
+               ".env.local\n";
     }
 }
