@@ -1,12 +1,10 @@
 package jpm.build;
 
 import jpm.config.JpmConfig;
-import jpm.deps.DependencyResolver;
 import jpm.utils.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 
 public class IdeFileGenerator {
 

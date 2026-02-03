@@ -9,7 +9,6 @@ import java.util.*;
 public class ParentPomResolver {
     
     private static final int MAX_PARENT_DEPTH = 10;
-    private static final String MAVEN_CENTRAL = "https://repo1.maven.org/maven2/";
     
     private final MavenClient mavenClient;
     private final DocumentBuilder docBuilder;

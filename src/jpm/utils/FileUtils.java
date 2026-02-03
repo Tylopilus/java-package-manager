@@ -4,8 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Comparator;
+import java.util.List;
 import java.util.stream.Stream;
 
 public class FileUtils {
@@ -25,10 +25,19 @@ public class FileUtils {
             return;
         }
         
+        // Collect all paths first to enable parallel deletion for large directories
+        List<Path> paths;
         try (Stream<Path> stream = Files.walk(dir.toPath())) {
-            stream.sorted(Comparator.reverseOrder())
-                  .map(Path::toFile)
-                  .forEach(File::delete);
+            paths = stream.sorted(Comparator.reverseOrder()).toList();
+        }
+        
+        // Use parallel deletion for large directories (> 100 files)
+        if (paths.size() > 100) {
+            paths.parallelStream()
+                .map(Path::toFile)
+                .forEach(File::delete);
+        } else {
+            paths.forEach(path -> path.toFile().delete());
         }
     }
     

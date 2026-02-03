@@ -1,8 +1,5 @@
 package jpm.cli;
 
-import jpm.config.ConfigParser;
-import jpm.config.JpmConfig;
-import jpm.deps.CacheManager;
 import jpm.utils.FileUtils;
 import picocli.CommandLine.Command;
 

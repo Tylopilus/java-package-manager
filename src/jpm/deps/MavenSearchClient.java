@@ -1,5 +1,7 @@
 package jpm.deps;
 
+import jpm.net.HttpClientManager;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -19,10 +21,7 @@ public class MavenSearchClient {
     private final HttpClient httpClient;
     
     public MavenSearchClient() {
-        this.httpClient = HttpClient.newBuilder()
-            .connectTimeout(TIMEOUT)
-            .followRedirects(HttpClient.Redirect.NORMAL)
-            .build();
+        this.httpClient = HttpClientManager.getClient();
     }
     
     public List<SearchResult> searchByArtifactId(String artifactId, int rows) throws IOException {

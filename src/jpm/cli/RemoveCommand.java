@@ -8,7 +8,6 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 
 import java.io.File;
-import java.util.Map;
 import java.util.concurrent.Callable;
 
 @Command(name = "remove", description = "Remove a dependency")

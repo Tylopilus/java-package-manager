@@ -58,8 +58,18 @@ public class RunCommand implements Callable<Integer> {
             }
 
             // Generate .classpath after dependency resolution if needed
-            if (!noIdeFiles && !new File(projectDir, ".classpath").exists()) {
+            boolean classpathExisted = new File(projectDir, ".classpath").exists();
+            if (!noIdeFiles && !classpathExisted) {
                 IdeFileGenerator.generateClasspathFile(projectDir, config, classpath);
+                classpathExisted = true;
+            }
+
+            // Show message if both files were generated
+            if (!noIdeFiles) {
+                boolean projectExisted = new File(projectDir, ".project").exists();
+                if (!projectExisted || !classpathExisted) {
+                    System.out.println("Generated IDE configuration files (.project, .classpath)");
+                }
             }
 
             // Show message if both files were generated
@@ -70,8 +80,7 @@ public class RunCommand implements Callable<Integer> {
 
             if (!noIdeFiles) {
                 boolean projectExisted = new File(projectDir, ".project").exists();
-                boolean classpathExisted = new File(projectDir, ".classpath").exists();
-                if (!projectExisted || !classpathExisted) {
+                if (!projectExisted) {
                     System.out.println("Generated IDE configuration files (.project, .classpath)");
                 }
             }

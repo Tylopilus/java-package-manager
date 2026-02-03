@@ -5,14 +5,11 @@ import jpm.build.ClasspathBuilder;
 import jpm.build.IdeFileGenerator;
 import jpm.config.ConfigParser;
 import jpm.config.JpmConfig;
-import jpm.deps.CacheManager;
 import jpm.deps.DependencyResolver;
-import jpm.utils.FileUtils;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -57,15 +54,16 @@ public class BuildCommand implements Callable<Integer> {
             }
 
             // Generate .classpath after dependency resolution if needed
-            if (!noIdeFiles && !new File(projectDir, ".classpath").exists()) {
+            boolean classpathExisted = new File(projectDir, ".classpath").exists();
+            if (!noIdeFiles && !classpathExisted) {
                 IdeFileGenerator.generateClasspathFile(projectDir, config, classpath);
+                classpathExisted = true;
             }
 
             // Show message if both files were generated
             if (!noIdeFiles) {
                 boolean projectExisted = new File(projectDir, ".project").exists();
-                boolean classpathExisted = new File(projectDir, ".classpath").exists();
-                if (!projectExisted || !classpathExisted) {
+                if (!projectExisted) {
                     System.out.println("Generated IDE configuration files (.project, .classpath)");
                 }
             }

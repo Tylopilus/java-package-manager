@@ -24,14 +24,11 @@ public class ClasspathBuilder {
             return "";
         }
         
-        StringBuilder classpath = new StringBuilder();
+        String[] paths = new String[jars.length];
         for (int i = 0; i < jars.length; i++) {
-            if (i > 0) {
-                classpath.append(File.pathSeparator);
-            }
-            classpath.append(jars[i].getAbsolutePath());
+            paths[i] = jars[i].getAbsolutePath();
         }
-        return classpath.toString();
+        return String.join(File.pathSeparator, paths);
     }
     
     public static String combineClasspaths(String... classpaths) {
@@ -49,5 +46,41 @@ public class ClasspathBuilder {
         }
         
         return result.toString();
+    }
+    
+    /**
+     * Combines multiple classpaths efficiently using String.join.
+     * Filters out null/empty strings first to avoid unnecessary separators.
+     * 
+     * @param classpaths Variable number of classpath strings
+     * @return Combined classpath string
+     */
+    public static String combineClasspathsFast(String... classpaths) {
+        if (classpaths == null || classpaths.length == 0) {
+            return "";
+        }
+        
+        // Count non-empty classpaths
+        int nonEmptyCount = 0;
+        for (String cp : classpaths) {
+            if (cp != null && !cp.isEmpty()) {
+                nonEmptyCount++;
+            }
+        }
+        
+        if (nonEmptyCount == 0) {
+            return "";
+        }
+        
+        // Collect non-empty paths
+        String[] paths = new String[nonEmptyCount];
+        int idx = 0;
+        for (String cp : classpaths) {
+            if (cp != null && !cp.isEmpty()) {
+                paths[idx++] = cp;
+            }
+        }
+        
+        return String.join(File.pathSeparator, paths);
     }
 }

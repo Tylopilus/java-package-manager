@@ -1,5 +1,7 @@
 package jpm.deps;
 
+import jpm.net.HttpClientManager;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -8,8 +10,10 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.*;
 
 public class MavenClient {
     private static final String MAVEN_CENTRAL = "https://repo1.maven.org/maven2/";
@@ -18,10 +22,7 @@ public class MavenClient {
     private final HttpClient httpClient;
     
     public MavenClient() {
-        this.httpClient = HttpClient.newBuilder()
-            .connectTimeout(TIMEOUT)
-            .followRedirects(HttpClient.Redirect.NORMAL)
-            .build();
+        this.httpClient = HttpClientManager.getClient();
     }
     
     public boolean downloadArtifact(String groupId, String artifactId, String version, 
@@ -89,5 +90,80 @@ public class MavenClient {
     private String buildPath(String groupId, String artifactId, String version, String extension) {
         String groupPath = groupId.replace('.', '/');
         return groupPath + "/" + artifactId + "/" + version + "/" + artifactId + "-" + version + "." + extension;
+    }
+    
+    /**
+     * Batch download multiple artifacts in parallel.
+     * This significantly speeds up dependency resolution by downloading
+     * artifacts concurrently rather than sequentially.
+     * 
+     * @param artifacts List of artifact coordinates to download
+     * @return List of booleans indicating success for each download
+     */
+    public List<Boolean> downloadArtifactsBatch(List<ArtifactSpec> artifacts) {
+        if (artifacts.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        // Use executor for parallel downloads
+        ExecutorService executor = Executors.newFixedThreadPool(
+            Math.min(artifacts.size(), 10) // Max 10 concurrent downloads
+        );
+        
+        List<Future<Boolean>> futures = new ArrayList<>();
+        
+        for (ArtifactSpec spec : artifacts) {
+            Future<Boolean> future = executor.submit(() -> {
+                try {
+                    return downloadArtifact(spec.groupId, spec.artifactId, spec.version, 
+                                          spec.outputDir, spec.extension);
+                } catch (IOException e) {
+                    System.err.println("  Error downloading " + spec + ": " + e.getMessage());
+                    return false;
+                }
+            });
+            futures.add(future);
+        }
+        
+        // Collect results
+        List<Boolean> results = new ArrayList<>(artifacts.size());
+        for (Future<Boolean> future : futures) {
+            try {
+                results.add(future.get());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                results.add(false);
+            } catch (ExecutionException e) {
+                results.add(false);
+            }
+        }
+        
+        executor.shutdown();
+        return results;
+    }
+    
+    /**
+     * Specification for an artifact to download in batch operations.
+     */
+    public static class ArtifactSpec {
+        public final String groupId;
+        public final String artifactId;
+        public final String version;
+        public final File outputDir;
+        public final String extension;
+        
+        public ArtifactSpec(String groupId, String artifactId, String version, 
+                           File outputDir, String extension) {
+            this.groupId = groupId;
+            this.artifactId = artifactId;
+            this.version = version;
+            this.outputDir = outputDir;
+            this.extension = extension;
+        }
+        
+        @Override
+        public String toString() {
+            return groupId + ":" + artifactId + ":" + version;
+        }
     }
 }

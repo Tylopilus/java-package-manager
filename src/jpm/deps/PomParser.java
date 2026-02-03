@@ -282,13 +282,22 @@ public class PomParser {
         return null;
     }
     
+    /**
+     * Cached sorted property entries for efficient substitution.
+     * Sorts by key length (longest first) to avoid partial substitutions.
+     */
+    private List<Map.Entry<String, String>> getSortedPropertyEntries(Map<String, String> properties) {
+        // Create list and sort by key length descending (longest keys first)
+        List<Map.Entry<String, String>> entries = new ArrayList<>(properties.entrySet());
+        entries.sort((a, b) -> Integer.compare(b.getKey().length(), a.getKey().length()));
+        return entries;
+    }
+    
     private String substituteProperties(String value, Map<String, String> properties) {
         if (value == null) return null;
         
         String result = value;
-        // Sort by longest key first to avoid partial substitutions
-        List<Map.Entry<String, String>> entries = new ArrayList<>(properties.entrySet());
-        entries.sort((a, b) -> Integer.compare(b.getKey().length(), a.getKey().length()));
+        List<Map.Entry<String, String>> entries = getSortedPropertyEntries(properties);
         
         for (Map.Entry<String, String> entry : entries) {
             result = result.replace(entry.getKey(), entry.getValue());
