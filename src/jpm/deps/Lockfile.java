@@ -106,12 +106,12 @@ public class Lockfile {
         .replace("\t", "\\t");
   }
 
-  public List<DependencyResolver.ResolvedDependency> toResolvedDependencies() {
-    var result = new ArrayList<DependencyResolver.ResolvedDependency>();
+  public List<ResolvedDependency> toResolvedDependencies() {
+    var result = new ArrayList<ResolvedDependency>();
     for (var entry : dependencies) {
       var jarFile = new java.io.File(entry.path());
       if (jarFile.exists()) {
-        result.add(new DependencyResolver.ResolvedDependency(
+        result.add(new ResolvedDependency(
             entry.group(), entry.artifact(), entry.version(), jarFile));
       }
     }
@@ -119,7 +119,7 @@ public class Lockfile {
   }
 
   public static Lockfile fromResolvedDependencies(
-      List<DependencyResolver.ResolvedDependency> deps, String configHash) {
+      List<ResolvedDependency> deps, String configHash) {
     var lockfile = new Lockfile();
     lockfile.setConfigHash(configHash);
     for (var dep : deps) {

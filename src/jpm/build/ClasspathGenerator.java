@@ -11,7 +11,7 @@ public class ClasspathGenerator {
 
   private final CacheManager cacheManager;
 
-  public ClasspathGenerator() {
+  public ClasspathGenerator() throws IOException {
     this.cacheManager = new CacheManager();
   }
 

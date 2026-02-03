@@ -13,7 +13,7 @@ import jpm.config.JpmConfig;
 import jpm.config.ProfileConfig;
 import jpm.config.ProjectPaths;
 import jpm.deps.DependencyResolver;
-import jpm.deps.DependencyResolver.ResolvedDependency;
+import jpm.deps.ResolvedDependency;
 import picocli.CommandLine.Option;
 
 /**

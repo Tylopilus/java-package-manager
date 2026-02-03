@@ -8,23 +8,6 @@ import org.w3c.dom.*;
 
 public class PomParser {
 
-  // Java 16+ record for dependency information
-  public record Dependency(
-      String groupId, String artifactId, String version, String scope, boolean optional) {
-
-    public boolean shouldInclude() {
-      // Include compile and runtime scope (or null/empty scope which defaults to compile)
-      // Exclude: test, provided
-      if ("test".equals(scope) || "provided".equals(scope)) {
-        return false;
-      }
-      if (optional) {
-        return false;
-      }
-      return true;
-    }
-  }
-
   private final DocumentBuilder docBuilder;
   private final ParentPomResolver parentResolver;
 
@@ -44,13 +27,13 @@ public class PomParser {
     this.docBuilder = factory.newDocumentBuilder();
   }
 
-  public List<Dependency> parseDependencies(String pomContent) throws Exception {
+  public List<PomDependency> parseDependencies(String pomContent) throws Exception {
     return parseDependencies(pomContent, null, null, null);
   }
 
-  public List<Dependency> parseDependencies(
+  public List<PomDependency> parseDependencies(
       String pomContent, String groupId, String artifactId, String version) throws Exception {
-    var deps = new ArrayList<Dependency>();
+    var deps = new ArrayList<PomDependency>();
 
     if (pomContent == null || pomContent.isBlank()) {
       return deps;
@@ -61,13 +44,13 @@ public class PomParser {
 
     // Get current POM coordinates (may be passed in or parsed from POM)
     if (groupId == null) {
-      groupId = getTextContent(doc.getDocumentElement(), "groupId");
+      groupId = getChildText(doc.getDocumentElement(), "groupId");
     }
     if (artifactId == null) {
-      artifactId = getTextContent(doc.getDocumentElement(), "artifactId");
+      artifactId = getChildText(doc.getDocumentElement(), "artifactId");
     }
     if (version == null) {
-      version = getTextContent(doc.getDocumentElement(), "version");
+      version = getChildText(doc.getDocumentElement(), "version");
     }
 
     // Build full property map including parent chain
@@ -75,20 +58,13 @@ public class PomParser {
     Map<String, String> allManagedVersions = buildFullManagedVersionsMap(doc);
 
     // Find dependencies
-    var depNodes = doc.getElementsByTagName("dependency");
-    for (int i = 0; i < depNodes.getLength(); i++) {
-      var depElement = (Element) depNodes.item(i);
-
-      // Skip if this is inside dependencyManagement section (we only want actual dependencies)
-      if (isInDependencyManagement(depElement)) {
-        continue;
-      }
-
-      String depGroupId = getTextContent(depElement, "groupId");
-      String depArtifactId = getTextContent(depElement, "artifactId");
-      String depVersion = getTextContent(depElement, "version");
-      String depScope = getTextContent(depElement, "scope");
-      String depOptional = getTextContent(depElement, "optional");
+    var depsList = getDirectDependencies(doc.getDocumentElement());
+    for (Element depElement : depsList) {
+      String depGroupId = getChildText(depElement, "groupId");
+      String depArtifactId = getChildText(depElement, "artifactId");
+      String depVersion = getChildText(depElement, "version");
+      String depScope = getChildText(depElement, "scope");
+      String depOptional = getChildText(depElement, "optional");
 
       // Substitute properties in version
       if (depVersion != null) {
@@ -115,7 +91,7 @@ public class PomParser {
       }
 
       if (depGroupId != null && depArtifactId != null) {
-        deps.add(new Dependency(
+        deps.add(new PomDependency(
             depGroupId, depArtifactId, depVersion, depScope, "true".equals(depOptional)));
       }
     }
@@ -176,9 +152,9 @@ public class PomParser {
     // If we have parent resolver, get inherited managed versions
     if (parentResolver != null) {
       // Try to get parent info from doc
-      String groupId = getTextContent(doc.getDocumentElement(), "groupId");
-      String artifactId = getTextContent(doc.getDocumentElement(), "artifactId");
-      String version = getTextContent(doc.getDocumentElement(), "version");
+      String groupId = getChildText(doc.getDocumentElement(), "groupId");
+      String artifactId = getChildText(doc.getDocumentElement(), "artifactId");
+      String version = getChildText(doc.getDocumentElement(), "version");
 
       if (groupId != null && artifactId != null && version != null) {
         try {
@@ -235,9 +211,9 @@ public class PomParser {
 
       for (int i = 0; i < depNodes.getLength(); i++) {
         var dep = (Element) depNodes.item(i);
-        String depGroupId = getTextContent(dep, "groupId");
-        String depArtifactId = getTextContent(dep, "artifactId");
-        String depVersion = getTextContent(dep, "version");
+        String depGroupId = getChildText(dep, "groupId");
+        String depArtifactId = getChildText(dep, "artifactId");
+        String depVersion = getChildText(dep, "version");
 
         if (depGroupId != null && depArtifactId != null && depVersion != null) {
           managed.put(depGroupId + ":" + depArtifactId, depVersion.trim());
@@ -248,28 +224,32 @@ public class PomParser {
     return managed;
   }
 
-  private boolean isInDependencyManagement(Element element) {
-    var parent = element.getParentNode();
-    while (parent != null) {
-      if (parent.getNodeType() == Node.ELEMENT_NODE) {
-        var parentElement = (Element) parent;
-        if ("dependencyManagement".equals(parentElement.getNodeName())) {
-          return true;
-        }
-        if ("dependencies".equals(parentElement.getNodeName())) {
-          return false;
+  private List<Element> getDirectDependencies(Element projectElement) {
+    var list = new ArrayList<Element>();
+    var children = projectElement.getChildNodes();
+    for (int i = 0; i < children.getLength(); i++) {
+      var node = children.item(i);
+      if (node.getNodeType() == Node.ELEMENT_NODE && "dependencies".equals(node.getNodeName())) {
+        var depsChildren = node.getChildNodes();
+        for (int j = 0; j < depsChildren.getLength(); j++) {
+          var depNode = depsChildren.item(j);
+          if (depNode.getNodeType() == Node.ELEMENT_NODE
+              && "dependency".equals(depNode.getNodeName())) {
+            list.add((Element) depNode);
+          }
         }
       }
-      parent = parent.getParentNode();
     }
-    return false;
+    return list;
   }
 
-  private String getTextContent(Element parent, String tagName) {
-    var nodes = parent.getElementsByTagName(tagName);
-    if (nodes.getLength() > 0) {
-      String content = nodes.item(0).getTextContent();
-      return content != null ? content.trim() : null;
+  private String getChildText(Element parent, String tagName) {
+    var children = parent.getChildNodes();
+    for (int i = 0; i < children.getLength(); i++) {
+      var node = children.item(i);
+      if (node.getNodeType() == Node.ELEMENT_NODE && tagName.equals(node.getNodeName())) {
+        return node.getTextContent().trim();
+      }
     }
     return null;
   }

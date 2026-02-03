@@ -12,10 +12,12 @@ import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.*;
 import jpm.net.HttpClientManager;
+import jpm.utils.Constants;
+import jpm.utils.Logger;
 
 public class MavenClient {
-  private static final String MAVEN_CENTRAL = "https://repo1.maven.org/maven2/";
-  private static final Duration TIMEOUT = Duration.ofSeconds(30);
+  private static final String MAVEN_CENTRAL = Constants.MAVEN_CENTRAL;
+  private static final Duration TIMEOUT = Duration.ofSeconds(Constants.DEFAULT_TIMEOUT_SECONDS);
 
   private final HttpClient httpClient;
 
@@ -107,7 +109,7 @@ public class MavenClient {
                   spec.outputDir(),
                   spec.extension());
             } catch (IOException e) {
-              System.err.println("  Error downloading " + spec + ": " + e.getMessage());
+              Logger.error("Error downloading " + spec + ": " + e.getMessage());
               return false;
             }
           }))
@@ -129,15 +131,4 @@ public class MavenClient {
     }
   }
 
-  /**
-   * Record representing an artifact specification for batch operations.
-   * Uses Java 16+ records for concise immutable data classes.
-   */
-  public record ArtifactSpec(
-      String groupId, String artifactId, String version, File outputDir, String extension) {
-    @Override
-    public String toString() {
-      return groupId + ":" + artifactId + ":" + version;
-    }
-  }
 }

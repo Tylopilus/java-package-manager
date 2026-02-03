@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.*;
 import jpm.config.JpmConfig;
 import jpm.utils.FileUtils;
+import jpm.utils.Logger;
 import jpm.utils.Version;
 
 public class DependencyResolver {
@@ -53,10 +54,10 @@ public class DependencyResolver {
       // Check for version conflict
       var existing = resolvedDeps.get(key);
       if (existing != null && version != null) {
-        if (Version.isNewer(version, existing.version)) {
+        if (Version.isNewer(version, existing.version())) {
           // Newer version, re-resolve with newer version
-          System.out.println(
-              "    Resolving version conflict: " + key + " " + existing.version + " -> " + version);
+          Logger.info(
+              "    Resolving version conflict: " + key + " " + existing.version() + " -> " + version);
           resolvedDeps.remove(key);
           resolvedArtifacts.remove(key);
         } else {
@@ -68,12 +69,12 @@ public class DependencyResolver {
     }
 
     if (version == null) {
-      System.err.println("  Warning: No version specified for " + key);
+      Logger.warn("  Warning: No version specified for " + key);
       return;
     }
 
     String indent = "  ".repeat(depth);
-    System.out.println(indent + "Resolving " + groupId + ":" + artifactId + ":" + version);
+    Logger.info(indent + "Resolving " + groupId + ":" + artifactId + ":" + version);
 
     resolvedArtifacts.add(key);
 
@@ -85,7 +86,7 @@ public class DependencyResolver {
     boolean jarDownloaded =
         mavenClient.downloadArtifact(groupId, artifactId, version, cacheDir, "jar");
     if (!jarDownloaded) {
-      System.err.println("  Warning: Failed to download JAR for " + key + ":" + version);
+      Logger.warn("  Warning: Failed to download JAR for " + key + ":" + version);
     }
 
     // Download POM for transitive dependencies
@@ -104,7 +105,7 @@ public class DependencyResolver {
           }
         }
       } catch (Exception e) {
-        System.err.println("  Warning: Failed to parse POM for " + key + ": " + e.getMessage());
+        Logger.warn("  Warning: Failed to parse POM for " + key + ": " + e.getMessage());
       }
     }
 
@@ -120,36 +121,24 @@ public class DependencyResolver {
     // If not forcing re-resolution, try to use lockfile
     if (!forceResolve) {
       if (LockfileManager.isLockfileValid(projectDir, config)) {
-        System.out.println("Using cached dependencies from jpm.lock");
+        Logger.info("Using cached dependencies from jpm.lock");
         return LockfileManager.loadFromLockfile(projectDir);
       }
     }
 
     // Perform full resolution
-    System.out.println("Resolving dependencies...");
+    Logger.info("Resolving dependencies...");
     var deps = resolveAll(config.dependencies());
 
     // Save to lockfile
     try {
       LockfileManager.saveToLockfile(projectDir, deps, config);
     } catch (IOException e) {
-      System.err.println("Warning: Failed to save lockfile: " + e.getMessage());
+      Logger.warn("Warning: Failed to save lockfile: " + e.getMessage());
     }
 
     return deps;
   }
 
-  // Java 16+ record for resolved dependency information
-  public record ResolvedDependency(
-      String groupId, String artifactId, String version, File jarFile) {
 
-    public String getClasspathEntry() {
-      return jarFile.getAbsolutePath();
-    }
-
-    @Override
-    public String toString() {
-      return groupId + ":" + artifactId + ":" + version;
-    }
-  }
 }

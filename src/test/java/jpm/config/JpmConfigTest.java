@@ -7,6 +7,8 @@ import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import jpm.config.FmtConfig;
+
 /**
  * Unit tests for JpmConfig record.
  * Tests immutability, construction, and business methods.
@@ -33,7 +35,7 @@ class JpmConfigTest {
     var pkg = new JpmConfig.PackageConfig("my-app", "1.0.0", "21");
     var deps = Map.of("com.example:lib", "1.0.0");
 
-    var config = new JpmConfig(pkg, new HashMap<>(deps), new HashMap<>());
+    var config = new JpmConfig(pkg, new HashMap<>(deps), new HashMap<>(), new FmtConfig());
 
     assertEquals("my-app", config.package_().name());
     assertEquals("1.0.0", config.package_().version());

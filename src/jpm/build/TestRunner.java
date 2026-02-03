@@ -45,9 +45,16 @@ public class TestRunner {
     var testResults = new ArrayList<TestResult>();
 
     try {
-      // Create class loader for test classes
-      var urls = new URL[] {testOutputDir.toURI().toURL()};
-      var classLoader = new URLClassLoader(urls, TestRunner.class.getClassLoader());
+      // Create class loader for test classes including classpath dependencies
+      var cpEntries = classpath.split(File.pathSeparator);
+      var urls = new ArrayList<URL>();
+      urls.add(testOutputDir.toURI().toURL());
+      for (var entry : cpEntries) {
+        if (!entry.isEmpty()) {
+          urls.add(new File(entry).toURI().toURL());
+        }
+      }
+      var classLoader = new URLClassLoader(urls.toArray(new URL[0]), TestRunner.class.getClassLoader());
 
       // Find all test classes
       var testClasses = findTestClasses(testOutputDir, testOutputDir, filter);
@@ -139,7 +146,10 @@ public class TestRunner {
         total++;
 
         try {
-          var instance = clazz.getDeclaredConstructor().newInstance();
+          var constructor = clazz.getDeclaredConstructor();
+          constructor.setAccessible(true);
+          var instance = constructor.newInstance();
+          method.setAccessible(true);
           method.invoke(instance);
           passed++;
 
@@ -149,20 +159,23 @@ public class TestRunner {
 
           details.add(new TestResult(clazz.getName() + "#" + method.getName(), "PASSED", 0, null));
 
-        } catch (Exception e) {
-          failed++;
+          } catch (Exception e) {
+            failed++;
+            var cause = e.getCause() != null ? e.getCause() : e;
 
-          if (!quiet) {
-            System.out.println("  ✗ " + clazz.getSimpleName() + "." + method.getName());
-            System.out.println("    " + e.getCause().getMessage());
+            if (!quiet) {
+              System.out.println("  ✗ " + clazz.getSimpleName() + "." + method.getName());
+              System.out.println("    " + cause.getMessage());
+              cause.printStackTrace(System.out);
+            }
+
+            details.add(new TestResult(
+                clazz.getName() + "#" + method.getName(),
+                "FAILED",
+                0,
+                cause.getMessage()));
           }
 
-          details.add(new TestResult(
-              clazz.getName() + "#" + method.getName(),
-              "FAILED",
-              0,
-              e.getCause() != null ? e.getCause().getMessage() : e.getMessage()));
-        }
       }
     }
 

@@ -50,7 +50,7 @@ public class LockfileManager {
     }
   }
 
-  public static List<DependencyResolver.ResolvedDependency> loadFromLockfile(File projectDir)
+  public static List<ResolvedDependency> loadFromLockfile(File projectDir)
       throws IOException {
     var lockfile = new File(projectDir, LOCKFILE_NAME);
     var lock = Lockfile.load(lockfile);
@@ -61,7 +61,7 @@ public class LockfileManager {
   }
 
   public static void saveToLockfile(
-      File projectDir, List<DependencyResolver.ResolvedDependency> deps, JpmConfig config)
+      File projectDir, List<ResolvedDependency> deps, JpmConfig config)
       throws IOException {
     var lockfile = new File(projectDir, LOCKFILE_NAME);
     var configHash = computeConfigHash(config);

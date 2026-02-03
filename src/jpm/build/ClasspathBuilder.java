@@ -3,13 +3,13 @@ package jpm.build;
 import java.io.File;
 import java.util.List;
 import java.util.stream.Collectors;
-import jpm.deps.DependencyResolver;
+import jpm.deps.ResolvedDependency;
 
 public class ClasspathBuilder {
 
-  public static String buildClasspath(List<DependencyResolver.ResolvedDependency> dependencies) {
+  public static String buildClasspath(List<ResolvedDependency> dependencies) {
     return dependencies.stream()
-        .map(DependencyResolver.ResolvedDependency::getClasspathEntry)
+        .map(ResolvedDependency::getClasspathEntry)
         .collect(Collectors.joining(File.pathSeparator));
   }
 

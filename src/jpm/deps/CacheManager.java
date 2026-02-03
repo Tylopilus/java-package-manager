@@ -12,7 +12,7 @@ public class CacheManager {
 
   private final File cacheDir;
 
-  public CacheManager() {
+  public CacheManager() throws IOException {
     this.cacheDir = FileUtils.getCacheDir();
     FileUtils.ensureDirectory(cacheDir);
   }
