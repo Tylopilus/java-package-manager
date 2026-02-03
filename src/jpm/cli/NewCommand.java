@@ -77,59 +77,69 @@ public class NewCommand implements Callable<Integer> {
   }
 
   private String generateMainClass(String projectName) {
-    return "public class Main {\n" + "    public static void main(String[] args) {\n"
-        + "        System.out.println(\"Hello, "
-        + projectName + "!\");\n" + "    }\n"
-        + "}\n";
+    return """
+        public class Main {
+            public static void main(String[] args) {
+                System.out.println("Hello, %s!");
+            }
+        }
+        """.formatted(projectName);
   }
 
   private String generateProjectFile(String projectName) {
-    return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + "<projectDescription>\n"
-        + "\t<name>"
-        + projectName + "</name>\n" + "\t<comment></comment>\n"
-        + "\t<projects>\n"
-        + "\t</projects>\n"
-        + "\t<buildSpec>\n"
-        + "\t\t<buildCommand>\n"
-        + "\t\t\t<name>org.eclipse.jdt.core.javabuilder</name>\n"
-        + "\t\t\t<arguments>\n"
-        + "\t\t\t</arguments>\n"
-        + "\t\t</buildCommand>\n"
-        + "\t</buildSpec>\n"
-        + "\t<natures>\n"
-        + "\t\t<nature>org.eclipse.jdt.core.javanature</nature>\n"
-        + "\t</natures>\n"
-        + "</projectDescription>\n";
+    return """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <projectDescription>
+        	<name>%s</name>
+        	<comment></comment>
+        	<projects>
+        	</projects>
+        	<buildSpec>
+        		<buildCommand>
+        			<name>org.eclipse.jdt.core.javabuilder</name>
+        			<arguments>
+        			</arguments>
+        		</buildCommand>
+        	</buildSpec>
+        	<natures>
+        		<nature>org.eclipse.jdt.core.javanature</nature>
+        	</natures>
+        </projectDescription>
+        """.formatted(projectName);
   }
 
   private String generateClasspath(String javaVersion) {
-    return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-        + "<classpath>\n"
-        + "\t<classpathentry kind=\"src\" path=\"src\"/>\n"
-        + "\t<classpathentry kind=\"output\" path=\"target/classes\"/>\n"
-        + "\t<classpathentry kind=\"con\""
-        + " path=\"org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-"
-        + javaVersion + "\"/>\n" + "</classpath>\n";
+    return """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <classpath>
+        	<classpathentry kind="src" path="src"/>
+        	<classpathentry kind="output" path="target/classes"/>
+        	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-%s"/>
+        </classpath>
+        """.formatted(javaVersion);
   }
 
   private String generateGitignore() {
-    return "# jpm build output\n" + "target/\n"
-        + "\n"
-        + "# IDE files (generated, not committed)\n"
-        + ".idea/\n"
-        + "*.iml\n"
-        + ".classpath\n"
-        + ".settings/\n"
-        + "\n"
-        + "# OS files\n"
-        + ".DS_Store\n"
-        + "Thumbs.db\n"
-        + "\n"
-        + "# Logs\n"
-        + "*.log\n"
-        + "\n"
-        + "# Local env files\n"
-        + ".env\n"
-        + ".env.local\n";
+    return """
+        # jpm build output
+        target/
+
+        # IDE files (generated, not committed)
+        .idea/
+        *.iml
+        .classpath
+        .settings/
+
+        # OS files
+        .DS_Store
+        Thumbs.db
+
+        # Logs
+        *.log
+
+        # Local env files
+        .env
+        .env.local
+        """;
   }
 }

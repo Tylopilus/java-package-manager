@@ -286,7 +286,7 @@ if [ ! -f "$PROJECT_ROOT/jpm.toml" ]; then
     cat > "$PROJECT_ROOT/jpm.toml" << 'EOF'
 [package]
 name = "jpm"
-version = "0.2.0-java21"
+version = "0.3.0"
 java-version = "21"
 
 [dependencies]
@@ -376,7 +376,7 @@ chmod +x "$BIN_DIR/jpm"
 echo ""
 echo "==> Bootstrap complete!"
 echo ""
-echo "JPM version: 0.2.0-java21"
+echo "JPM version: 0.3.0"
 echo "Java version required: 21+"
 echo ""
 echo "Add jpm to your PATH:"

@@ -182,17 +182,17 @@ public class PomParser {
 
     var propNodes = doc.getElementsByTagName("properties");
     if (propNodes.getLength() > 0) {
-      var propsElement = (Element) propNodes.item(0);
-      var children = propsElement.getChildNodes();
-      for (int i = 0; i < children.getLength(); i++) {
-        var node = children.item(i);
-        if (node.getNodeType() == Node.ELEMENT_NODE) {
-          String name = node.getNodeName();
-          String value = node.getTextContent();
-          if (value != null) {
-            value = value.trim();
-            props.put(name, value);
-            props.put("${" + name + "}", value);
+      if (propNodes.item(0) instanceof Element propsElement) {
+        var children = propsElement.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+          if (children.item(i) instanceof Element node) {
+            String name = node.getNodeName();
+            String value = node.getTextContent();
+            if (value != null) {
+              value = value.strip();
+              props.put(name, value);
+              props.put("${" + name + "}", value);
+            }
           }
         }
       }
@@ -206,17 +206,19 @@ public class PomParser {
 
     var dmNodes = doc.getElementsByTagName("dependencyManagement");
     if (dmNodes.getLength() > 0) {
-      var dmElement = (Element) dmNodes.item(0);
-      var depNodes = dmElement.getElementsByTagName("dependency");
+      if (dmNodes.item(0) instanceof Element dmElement) {
+        var depNodes = dmElement.getElementsByTagName("dependency");
 
-      for (int i = 0; i < depNodes.getLength(); i++) {
-        var dep = (Element) depNodes.item(i);
-        String depGroupId = getChildText(dep, "groupId");
-        String depArtifactId = getChildText(dep, "artifactId");
-        String depVersion = getChildText(dep, "version");
+        for (int i = 0; i < depNodes.getLength(); i++) {
+          if (depNodes.item(i) instanceof Element dep) {
+            String depGroupId = getChildText(dep, "groupId");
+            String depArtifactId = getChildText(dep, "artifactId");
+            String depVersion = getChildText(dep, "version");
 
-        if (depGroupId != null && depArtifactId != null && depVersion != null) {
-          managed.put(depGroupId + ":" + depArtifactId, depVersion.trim());
+            if (depGroupId != null && depArtifactId != null && depVersion != null) {
+              managed.put(depGroupId + ":" + depArtifactId, depVersion.strip());
+            }
+          }
         }
       }
     }
@@ -228,14 +230,12 @@ public class PomParser {
     var list = new ArrayList<Element>();
     var children = projectElement.getChildNodes();
     for (int i = 0; i < children.getLength(); i++) {
-      var node = children.item(i);
-      if (node.getNodeType() == Node.ELEMENT_NODE && "dependencies".equals(node.getNodeName())) {
+      if (children.item(i) instanceof Element node && "dependencies".equals(node.getNodeName())) {
         var depsChildren = node.getChildNodes();
         for (int j = 0; j < depsChildren.getLength(); j++) {
-          var depNode = depsChildren.item(j);
-          if (depNode.getNodeType() == Node.ELEMENT_NODE
+          if (depsChildren.item(j) instanceof Element depNode
               && "dependency".equals(depNode.getNodeName())) {
-            list.add((Element) depNode);
+            list.add(depNode);
           }
         }
       }
@@ -246,9 +246,8 @@ public class PomParser {
   private String getChildText(Element parent, String tagName) {
     var children = parent.getChildNodes();
     for (int i = 0; i < children.getLength(); i++) {
-      var node = children.item(i);
-      if (node.getNodeType() == Node.ELEMENT_NODE && tagName.equals(node.getNodeName())) {
-        return node.getTextContent().trim();
+      if (children.item(i) instanceof Element node && tagName.equals(node.getNodeName())) {
+        return node.getTextContent().strip();
       }
     }
     return null;

@@ -6,7 +6,7 @@ package jpm;
  */
 public final class JpmVersion {
 
-  public static final String CURRENT = "0.2.0-java21";
+  public static final String CURRENT = "0.3.0";
   public static final int MINIMUM_JAVA_VERSION = 21;
 
   private JpmVersion() {

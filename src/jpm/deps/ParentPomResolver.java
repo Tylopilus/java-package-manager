@@ -164,19 +164,19 @@ public class ParentPomResolver {
   private PomInfo extractProperties(Document doc, PomInfo pomInfo) {
     NodeList propNodes = doc.getElementsByTagName("properties");
     if (propNodes.getLength() > 0) {
-      Element propsElement = (Element) propNodes.item(0);
-      NodeList children = propsElement.getChildNodes();
-      for (int i = 0; i < children.getLength(); i++) {
-        Node node = children.item(i);
-        if (node.getNodeType() == Node.ELEMENT_NODE) {
-          String name = node.getNodeName();
-          String value = node.getTextContent();
-          if (value != null) {
-            String trimmedValue = value.trim();
-            // Use immutable withProperty to add each property
-            pomInfo = pomInfo
-                .withProperty("${" + name + "}", trimmedValue)
-                .withProperty(name, trimmedValue);
+      if (propNodes.item(0) instanceof Element propsElement) {
+        NodeList children = propsElement.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+          if (children.item(i) instanceof Element node) {
+            String name = node.getNodeName();
+            String value = node.getTextContent();
+            if (value != null) {
+              String trimmedValue = value.strip();
+              // Use immutable withProperty to add each property
+              pomInfo = pomInfo
+                  .withProperty("${" + name + "}", trimmedValue)
+                  .withProperty(name, trimmedValue);
+            }
           }
         }
       }
@@ -187,19 +187,21 @@ public class ParentPomResolver {
   private PomInfo extractDependencyManagement(Document doc, PomInfo pomInfo) {
     NodeList dmNodes = doc.getElementsByTagName("dependencyManagement");
     if (dmNodes.getLength() > 0) {
-      Element dmElement = (Element) dmNodes.item(0);
-      NodeList depNodes = dmElement.getElementsByTagName("dependency");
+      if (dmNodes.item(0) instanceof Element dmElement) {
+        NodeList depNodes = dmElement.getElementsByTagName("dependency");
 
-      for (int i = 0; i < depNodes.getLength(); i++) {
-        Element dep = (Element) depNodes.item(i);
-        String depGroupId = getTextContent(dep, "groupId");
-        String depArtifactId = getTextContent(dep, "artifactId");
-        String depVersion = getTextContent(dep, "version");
+        for (int i = 0; i < depNodes.getLength(); i++) {
+          if (depNodes.item(i) instanceof Element dep) {
+            String depGroupId = getTextContent(dep, "groupId");
+            String depArtifactId = getTextContent(dep, "artifactId");
+            String depVersion = getTextContent(dep, "version");
 
-        if (depGroupId != null && depArtifactId != null && depVersion != null) {
-          String key = depGroupId + ":" + depArtifactId;
-          // Use immutable withManagedVersion
-          pomInfo = pomInfo.withManagedVersion(key, depVersion.trim());
+            if (depGroupId != null && depArtifactId != null && depVersion != null) {
+              String key = depGroupId + ":" + depArtifactId;
+              // Use immutable withManagedVersion
+              pomInfo = pomInfo.withManagedVersion(key, depVersion.strip());
+            }
+          }
         }
       }
     }
@@ -209,23 +211,24 @@ public class ParentPomResolver {
   private PomInfo extractParentInfo(Document doc) {
     NodeList parentNodes = doc.getElementsByTagName("parent");
     if (parentNodes.getLength() > 0) {
-      Element parentElement = (Element) parentNodes.item(0);
+      if (parentNodes.item(0) instanceof Element parentElement) {
 
-      // Only consider direct <project> children, not <dependencyManagement> parents
-      if (isDirectProjectChild(parentElement)) {
-        String parentGroupId = getTextContent(parentElement, "groupId");
-        String parentArtifactId = getTextContent(parentElement, "artifactId");
-        String parentVersion = getTextContent(parentElement, "version");
+        // Only consider direct <project> children, not <dependencyManagement> parents
+        if (isDirectProjectChild(parentElement)) {
+          String parentGroupId = getTextContent(parentElement, "groupId");
+          String parentArtifactId = getTextContent(parentElement, "artifactId");
+          String parentVersion = getTextContent(parentElement, "version");
 
-        if (parentGroupId != null && parentArtifactId != null && parentVersion != null) {
-          // Create parent PomInfo using record constructor
-          return new PomInfo(
-              parentGroupId.trim(),
-              parentArtifactId.trim(),
-              parentVersion.trim(),
-              new HashMap<>(),
-              new HashMap<>(),
-              null);
+          if (parentGroupId != null && parentArtifactId != null && parentVersion != null) {
+            // Create parent PomInfo using record constructor
+            return new PomInfo(
+                parentGroupId.strip(),
+                parentArtifactId.strip(),
+                parentVersion.strip(),
+                new HashMap<>(),
+                new HashMap<>(),
+                null);
+          }
         }
       }
     }
@@ -234,8 +237,8 @@ public class ParentPomResolver {
 
   private boolean isDirectProjectChild(Element element) {
     Node parent = element.getParentNode();
-    if (parent != null && parent.getNodeType() == Node.ELEMENT_NODE) {
-      String parentName = parent.getNodeName();
+    if (parent instanceof Element parentElement) {
+      String parentName = parentElement.getNodeName();
       return "project".equals(parentName);
     }
     return false;

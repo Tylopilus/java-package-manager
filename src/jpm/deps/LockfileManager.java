@@ -81,15 +81,7 @@ public class LockfileManager {
       }
 
       var hashBytes = digest.digest();
-      var hexString = new StringBuilder();
-      for (var b : hashBytes) {
-        var hex = Integer.toHexString(0xff & b);
-        if (hex.length() == 1) {
-          hexString.append('0');
-        }
-        hexString.append(hex);
-      }
-      return hexString.toString();
+      return java.util.HexFormat.of().formatHex(hashBytes);
     } catch (NoSuchAlgorithmException e) {
       // Fallback to simple string concatenation if SHA-256 not available
       var sb = new StringBuilder();

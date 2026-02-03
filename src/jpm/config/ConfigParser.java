@@ -93,12 +93,15 @@ public class ConfigParser {
     var toml = new StringBuilder();
 
     // Package section
-    toml.append("[package]\n");
-    toml.append("name = \"").append(escape(config.package_().name())).append("\"\n");
-    toml.append("version = \"").append(escape(config.package_().version())).append("\"\n");
-    toml.append("java-version = \"")
-        .append(escape(config.package_().javaVersion()))
-        .append("\"\n");
+    toml.append("""
+        [package]
+        name = "%s"
+        version = "%s"
+        java-version = "%s"
+        """.formatted(
+            escape(config.package_().name()),
+            escape(config.package_().version()),
+            escape(config.package_().javaVersion())));
 
     // Dependencies section
     if (!config.dependencies().isEmpty()) {
@@ -121,9 +124,9 @@ public class ConfigParser {
       for (var entry : config.profiles().entrySet()) {
         var profileName = entry.getKey();
         var profile = entry.getValue();
-        toml.append("\n[profile.").append(profileName).append("]\n");
+        toml.append("\n[profile.%s]\n".formatted(profileName));
         if (profile.inherits() != null) {
-          toml.append("inherits = \"").append(escape(profile.inherits())).append("\"\n");
+          toml.append("inherits = \"%s\"\n".formatted(escape(profile.inherits())));
         }
         if (profile.optimize()) {
           toml.append("optimize = true\n");
