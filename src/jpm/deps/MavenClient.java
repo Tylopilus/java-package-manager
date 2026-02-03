@@ -1,7 +1,5 @@
 package jpm.deps;
 
-import jpm.net.HttpClientManager;
-
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -11,139 +9,135 @@ import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
+import jpm.net.HttpClientManager;
 
 public class MavenClient {
-    private static final String MAVEN_CENTRAL = "https://repo1.maven.org/maven2/";
-    private static final Duration TIMEOUT = Duration.ofSeconds(30);
-    
-    private final HttpClient httpClient;
-    
-    public MavenClient() {
-        this.httpClient = HttpClientManager.getClient();
+  private static final String MAVEN_CENTRAL = "https://repo1.maven.org/maven2/";
+  private static final Duration TIMEOUT = Duration.ofSeconds(30);
+
+  private final HttpClient httpClient;
+
+  public MavenClient() {
+    this.httpClient = HttpClientManager.getClient();
+  }
+
+  public boolean downloadArtifact(
+      String groupId, String artifactId, String version, File outputDir, String extension)
+      throws IOException {
+    String path = buildPath(groupId, artifactId, version, extension);
+    String url = MAVEN_CENTRAL + path;
+
+    File outputFile = new File(outputDir, artifactId + "-" + version + "." + extension);
+
+    if (outputFile.exists()) {
+      return true; // Already cached
     }
-    
-    public boolean downloadArtifact(String groupId, String artifactId, String version, 
-                                   File outputDir, String extension) throws IOException {
-        String path = buildPath(groupId, artifactId, version, extension);
-        String url = MAVEN_CENTRAL + path;
-        
-        File outputFile = new File(outputDir, artifactId + "-" + version + "." + extension);
-        
-        if (outputFile.exists()) {
-            return true; // Already cached
-        }
-        
-        HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(url))
-            .timeout(TIMEOUT)
-            .GET()
-            .build();
-        
-        try {
-            HttpResponse<Path> response = httpClient.send(
-                request, 
-                HttpResponse.BodyHandlers.ofFile(outputFile.toPath())
-            );
-            
-            if (response.statusCode() == 200) {
-                return true;
-            } else {
-                Files.deleteIfExists(outputFile.toPath());
-                return false;
+
+    HttpRequest request =
+        HttpRequest.newBuilder().uri(URI.create(url)).timeout(TIMEOUT).GET().build();
+
+    try {
+      HttpResponse<Path> response =
+          httpClient.send(request, HttpResponse.BodyHandlers.ofFile(outputFile.toPath()));
+
+      if (response.statusCode() == 200) {
+        return true;
+      } else {
+        Files.deleteIfExists(outputFile.toPath());
+        return false;
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      return false;
+    }
+  }
+
+  public String downloadPom(String groupId, String artifactId, String version) throws IOException {
+    String path = buildPath(groupId, artifactId, version, "pom");
+    String url = MAVEN_CENTRAL + path;
+
+    HttpRequest request =
+        HttpRequest.newBuilder().uri(URI.create(url)).timeout(TIMEOUT).GET().build();
+
+    try {
+      HttpResponse<String> response =
+          httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+      if (response.statusCode() == 200) {
+        return response.body();
+      } else {
+        return null;
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      return null;
+    }
+  }
+
+  private String buildPath(String groupId, String artifactId, String version, String extension) {
+    String groupPath = groupId.replace('.', '/');
+    return groupPath + "/" + artifactId + "/" + version + "/" + artifactId + "-" + version + "."
+        + extension;
+  }
+
+  /**
+   * Batch download multiple artifacts in parallel using virtual threads.
+   * Virtual threads provide optimal performance for I/O-bound operations
+   * like HTTP downloads without the overhead of traditional thread pools.
+   *
+   * @param artifacts List of artifact coordinates to download
+   * @return List of booleans indicating success for each download
+   */
+  public List<Boolean> downloadArtifactsBatch(List<ArtifactSpec> artifacts) {
+    if (artifacts.isEmpty()) {
+      return List.of();
+    }
+
+    // Use virtual threads for optimal I/O-bound concurrency
+    try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+      var futures = artifacts.stream()
+          .map(spec -> executor.submit(() -> {
+            try {
+              return downloadArtifact(
+                  spec.groupId(),
+                  spec.artifactId(),
+                  spec.version(),
+                  spec.outputDir(),
+                  spec.extension());
+            } catch (IOException e) {
+              System.err.println("  Error downloading " + spec + ": " + e.getMessage());
+              return false;
             }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return false;
-        }
-    }
-    
-    public String downloadPom(String groupId, String artifactId, String version) throws IOException {
-        String path = buildPath(groupId, artifactId, version, "pom");
-        String url = MAVEN_CENTRAL + path;
-        
-        HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(url))
-            .timeout(TIMEOUT)
-            .GET()
-            .build();
-        
-        try {
-            HttpResponse<String> response = httpClient.send(
-                request, 
-                HttpResponse.BodyHandlers.ofString()
-            );
-            
-            if (response.statusCode() == 200) {
-                return response.body();
-            } else {
-                return null;
+          }))
+          .toList();
+
+      // Collect results
+      return futures.stream()
+          .map(f -> {
+            try {
+              return f.get();
+            } catch (InterruptedException e) {
+              Thread.currentThread().interrupt();
+              return false;
+            } catch (ExecutionException e) {
+              return false;
             }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return null;
-        }
+          })
+          .toList();
     }
-    
-    private String buildPath(String groupId, String artifactId, String version, String extension) {
-        String groupPath = groupId.replace('.', '/');
-        return groupPath + "/" + artifactId + "/" + version + "/" + artifactId + "-" + version + "." + extension;
+  }
+
+  /**
+   * Record representing an artifact specification for batch operations.
+   * Uses Java 16+ records for concise immutable data classes.
+   */
+  public record ArtifactSpec(
+      String groupId, String artifactId, String version, File outputDir, String extension) {
+    @Override
+    public String toString() {
+      return groupId + ":" + artifactId + ":" + version;
     }
-    
-    /**
-     * Batch download multiple artifacts in parallel using virtual threads.
-     * Virtual threads provide optimal performance for I/O-bound operations
-     * like HTTP downloads without the overhead of traditional thread pools.
-     * 
-     * @param artifacts List of artifact coordinates to download
-     * @return List of booleans indicating success for each download
-     */
-    public List<Boolean> downloadArtifactsBatch(List<ArtifactSpec> artifacts) {
-        if (artifacts.isEmpty()) {
-            return List.of();
-        }
-        
-        // Use virtual threads for optimal I/O-bound concurrency
-        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
-            var futures = artifacts.stream()
-                .map(spec -> executor.submit(() -> {
-                    try {
-                        return downloadArtifact(spec.groupId(), spec.artifactId(), spec.version(), 
-                                              spec.outputDir(), spec.extension());
-                    } catch (IOException e) {
-                        System.err.println("  Error downloading " + spec + ": " + e.getMessage());
-                        return false;
-                    }
-                }))
-                .toList();
-            
-            // Collect results
-            return futures.stream()
-                .map(f -> {
-                    try {
-                        return f.get();
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        return false;
-                    } catch (ExecutionException e) {
-                        return false;
-                    }
-                })
-                .toList();
-        }
-    }
-    
-    /**
-     * Record representing an artifact specification for batch operations.
-     * Uses Java 16+ records for concise immutable data classes.
-     */
-    public record ArtifactSpec(String groupId, String artifactId, String version, 
-                               File outputDir, String extension) {
-        @Override
-        public String toString() {
-            return groupId + ":" + artifactId + ":" + version;
-        }
-    }
+  }
 }

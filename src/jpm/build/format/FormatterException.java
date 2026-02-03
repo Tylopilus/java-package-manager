@@ -6,15 +6,15 @@ package jpm.build.format;
  */
 public class FormatterException extends Exception {
 
-    public FormatterException(String message) {
-        super(message);
-    }
+  public FormatterException(String message) {
+    super(message);
+  }
 
-    public FormatterException(String message, Throwable cause) {
-        super(message, cause);
-    }
+  public FormatterException(String message, Throwable cause) {
+    super(message, cause);
+  }
 
-    public FormatterException(Throwable cause) {
-        super(cause);
-    }
+  public FormatterException(Throwable cause) {
+    super(cause);
+  }
 }
