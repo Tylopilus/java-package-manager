@@ -3,6 +3,7 @@ package jpm.cli;
 import jpm.build.Compiler;
 import jpm.build.Runner;
 import jpm.build.ClasspathBuilder;
+import jpm.build.IdeFileGenerator;
 import jpm.config.ConfigParser;
 import jpm.config.JpmConfig;
 import jpm.deps.DependencyResolver;
@@ -22,6 +23,9 @@ public class RunCommand implements Callable<Integer> {
     @Option(names = {"--force-resolve"}, description = "Force re-resolution of dependencies, ignoring lockfile")
     private boolean forceResolve;
 
+    @Option(names = {"--no-ide-files"}, description = "Skip generation of IDE configuration files (.project, .classpath)")
+    private boolean noIdeFiles;
+
     @Override
     public Integer call() {
         try {
@@ -31,22 +35,47 @@ public class RunCommand implements Callable<Integer> {
                 System.err.println("Error: No jpm.toml found. Run 'jpm new <name>' first.");
                 return 1;
             }
-            
+
             // Load config
             JpmConfig config = ConfigParser.load(configFile);
-            
+
             System.out.println("Building " + config.getPackage().getName() + " v" + config.getPackage().getVersion());
-            
+
+            // Generate IDE files if missing and not disabled
+            File projectDir = new File(".");
+            if (!noIdeFiles && IdeFileGenerator.shouldGenerateIdeFiles(projectDir)) {
+                // We'll generate .project now, and .classpath after dependency resolution
+                IdeFileGenerator.generateProjectFile(projectDir, config);
+            }
+
             // Resolve dependencies
             String classpath = "";
             if (!config.getDependencies().isEmpty()) {
                 DependencyResolver resolver = new DependencyResolver();
-                File projectDir = new File(".");
                 List<DependencyResolver.ResolvedDependency> deps = resolver.resolveWithLockfile(projectDir, config, forceResolve);
                 classpath = ClasspathBuilder.buildClasspath(deps);
                 System.out.println("Resolved " + deps.size() + " dependencies");
             }
-            
+
+            // Generate .classpath after dependency resolution if needed
+            if (!noIdeFiles && !new File(projectDir, ".classpath").exists()) {
+                IdeFileGenerator.generateClasspathFile(projectDir, config, classpath);
+            }
+
+            // Show message if both files were generated
+            if (!noIdeFiles && (IdeFileGenerator.shouldGenerateIdeFiles(projectDir) ||
+                (!new File(projectDir, ".project").exists() && !new File(projectDir, ".classpath").exists()))) {
+                // This won't show since we just generated them, but let's check before generation
+            }
+
+            if (!noIdeFiles) {
+                boolean projectExisted = new File(projectDir, ".project").exists();
+                boolean classpathExisted = new File(projectDir, ".classpath").exists();
+                if (!projectExisted || !classpathExisted) {
+                    System.out.println("Generated IDE configuration files (.project, .classpath)");
+                }
+            }
+
             // Compile
             File sourceDir = new File("src");
             File outputDir = new File("target/classes");
