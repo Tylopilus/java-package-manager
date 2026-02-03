@@ -115,9 +115,9 @@ fi
 
 echo "     Found Java ${JAVA_VERSION} ✓"
 
-# Find all Java source files
+# Find all Java source files (excluding tests)
 echo "  -> Finding source files..."
-SOURCE_FILES=$(find "$PROJECT_ROOT/src" -name "*.java" 2>/dev/null || true)
+SOURCE_FILES=$(find "$PROJECT_ROOT/src" -name "*.java" ! -path "*/test/*" 2>/dev/null || true)
 
 if [ -z "$SOURCE_FILES" ]; then
     echo "  -> No source files found. Cannot bootstrap without source code."
