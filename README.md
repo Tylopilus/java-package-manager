@@ -104,15 +104,32 @@ class MyTest {
 
 ### Code Formatting
 
-Format your code with Palantir Java Format:
+Format your code with Palantir Java Format (2.86.0):
 
 ```bash
 jpm fmt                # Format all Java files in src/
 jpm fmt --check        # Check formatting (CI mode - fails if unformatted)
 jpm fmt src/Main.java  # Format specific file
+jpm fmt --no-organize-imports  # Skip import organization
+```
+
+**Features:**
+- **Format code**: Applies Palantir Java Format style (120 char line length)
+- **Organize imports**: Removes unused imports and sorts them (enabled by default)
+- **Check mode**: Returns exit code 1 if files need formatting (for CI)
+- **Skip patterns**: Exclude files using glob patterns
+
+**Configuration (jpm.toml):**
+
+```toml
+[fmt]
+organize-imports = true                              # Enable/disable import organization
+skip-patterns = ["**/target/**", "**/generated/**"]    # Files to exclude from formatting
 ```
 
 **CI Integration:** Use `jpm fmt --check` in pre-commit hooks or CI pipelines. It returns exit code 1 if any files need formatting.
+
+**Pluggable Architecture:** The formatter uses a pluggable interface (`jpm.build.format.Formatter`), making it easy to add alternative formatters (Eclipse, IntelliJ, Google Java Format, etc.) in the future.
 
 ## Commands
 
@@ -133,7 +150,9 @@ jpm fmt src/Main.java  # Format specific file
 | `jpm test --filter <pattern>` | Run tests matching pattern         | `jpm test --filter UserTest`          |
 | `jpm test --no-parallel` | Disable parallel test execution          | `jpm test --no-parallel`              |
 | `jpm fmt`               | Format Java code with Palantir formatter | `jpm fmt`                                 |
-| `jpm fmt --check`      | Check formatting (CI mode)              | `jpm fmt --check`                         |
+| `jpm fmt --check`       | Check formatting (CI mode)              | `jpm fmt --check`                         |
+| `jpm fmt --organize-imports` | Format with import organization    | `jpm fmt --organize-imports`              |
+| `jpm fmt --no-organize-imports` | Format without import organization | `jpm fmt --no-organize-imports`      |
 | `jpm clean`             | Delete target/ directory                  | `jpm clean`                                 |
 | `jpm sync`              | Sync IDE configuration (`.classpath`, `.project`) | `jpm sync`                          |
 
