@@ -85,7 +85,7 @@ if [ ! -f "$LIB_DIR/$PALANTIR_SPI_JAR" ]; then
 fi
 
 # Download Guava (required by Palantir)
-GUAVA_VERSION="33.0.0-jre"
+GUAVA_VERSION="33.5.0-jre"
 GUAVA_JAR="guava-${GUAVA_VERSION}.jar"
 GUAVA_URL="https://repo1.maven.org/maven2/com/google/guava/guava/${GUAVA_VERSION}/${GUAVA_JAR}"
 
@@ -102,6 +102,84 @@ FAILUREACCESS_URL="https://repo1.maven.org/maven2/com/google/guava/failureaccess
 if [ ! -f "$LIB_DIR/$FAILUREACCESS_JAR" ]; then
     echo "  -> Downloading failureaccess ${FAILUREACCESS_VERSION}..."
     curl -sL "$FAILUREACCESS_URL" -o "$LIB_DIR/$FAILUREACCESS_JAR" || echo "  Warning: Failed to download failureaccess"
+fi
+
+# Download FunctionalJava (required by Palantir)
+FJ_VERSION="4.8"
+FJ_JAR="functionaljava-${FJ_VERSION}.jar"
+FJ_URL="https://repo1.maven.org/maven2/org/functionaljava/functionaljava/${FJ_VERSION}/${FJ_JAR}"
+
+if [ ! -f "$LIB_DIR/$FJ_JAR" ]; then
+    echo "  -> Downloading functionaljava ${FJ_VERSION}..."
+    curl -sL "$FJ_URL" -o "$LIB_DIR/$FJ_JAR" || echo "  Warning: Failed to download functionaljava"
+fi
+
+# Download Jackson dependencies (required by Palantir)
+JACKSON_VERSION="2.18.2"
+
+# Jackson Core
+JACKSON_CORE_JAR="jackson-core-${JACKSON_VERSION}.jar"
+JACKSON_CORE_URL="https://repo1.maven.org/maven2/com/fasterxml/jackson/core/jackson-core/${JACKSON_VERSION}/${JACKSON_CORE_JAR}"
+
+if [ ! -f "$LIB_DIR/$JACKSON_CORE_JAR" ]; then
+    echo "  -> Downloading jackson-core ${JACKSON_VERSION}..."
+    curl -sL "$JACKSON_CORE_URL" -o "$LIB_DIR/$JACKSON_CORE_JAR" || echo "  Warning: Failed to download jackson-core"
+fi
+
+# Jackson Databind
+JACKSON_DATABIND_JAR="jackson-databind-${JACKSON_VERSION}.jar"
+JACKSON_DATABIND_URL="https://repo1.maven.org/maven2/com/fasterxml/jackson/core/jackson-databind/${JACKSON_VERSION}/${JACKSON_DATABIND_JAR}"
+
+if [ ! -f "$LIB_DIR/$JACKSON_DATABIND_JAR" ]; then
+    echo "  -> Downloading jackson-databind ${JACKSON_VERSION}..."
+    curl -sL "$JACKSON_DATABIND_URL" -o "$LIB_DIR/$JACKSON_DATABIND_JAR" || echo "  Warning: Failed to download jackson-databind"
+fi
+
+# Jackson Annotations
+JACKSON_ANNOTATIONS_JAR="jackson-annotations-${JACKSON_VERSION}.jar"
+JACKSON_ANNOTATIONS_URL="https://repo1.maven.org/maven2/com/fasterxml/jackson/core/jackson-annotations/${JACKSON_VERSION}/${JACKSON_ANNOTATIONS_JAR}"
+
+if [ ! -f "$LIB_DIR/$JACKSON_ANNOTATIONS_JAR" ]; then
+    echo "  -> Downloading jackson-annotations ${JACKSON_VERSION}..."
+    curl -sL "$JACKSON_ANNOTATIONS_URL" -o "$LIB_DIR/$JACKSON_ANNOTATIONS_JAR" || echo "  Warning: Failed to download jackson-annotations"
+fi
+
+# Jackson Datatype JDK8
+JACKSON_DATATYPE_JAR="jackson-datatype-jdk8-${JACKSON_VERSION}.jar"
+JACKSON_DATATYPE_URL="https://repo1.maven.org/maven2/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/${JACKSON_VERSION}/${JACKSON_DATATYPE_JAR}"
+
+if [ ! -f "$LIB_DIR/$JACKSON_DATATYPE_JAR" ]; then
+    echo "  -> Downloading jackson-datatype-jdk8 ${JACKSON_VERSION}..."
+    curl -sL "$JACKSON_DATATYPE_URL" -o "$LIB_DIR/$JACKSON_DATATYPE_JAR" || echo "  Warning: Failed to download jackson-datatype-jdk8"
+fi
+
+# Jackson Module Parameter Names
+JACKSON_MODULE_JAR="jackson-module-parameter-names-${JACKSON_VERSION}.jar"
+JACKSON_MODULE_URL="https://repo1.maven.org/maven2/com/fasterxml/jackson/module/jackson-module-parameter-names/${JACKSON_VERSION}/${JACKSON_MODULE_JAR}"
+
+if [ ! -f "$LIB_DIR/$JACKSON_MODULE_JAR" ]; then
+    echo "  -> Downloading jackson-module-parameter-names ${JACKSON_VERSION}..."
+    curl -sL "$JACKSON_MODULE_URL" -o "$LIB_DIR/$JACKSON_MODULE_JAR" || echo "  Warning: Failed to download jackson-module-parameter-names"
+fi
+
+# Download JSR305 (required by Palantir)
+JSR305_VERSION="3.0.2"
+JSR305_JAR="jsr305-${JSR305_VERSION}.jar"
+JSR305_URL="https://repo1.maven.org/maven2/com/google/code/findbugs/jsr305/${JSR305_VERSION}/${JSR305_JAR}"
+
+if [ ! -f "$LIB_DIR/$JSR305_JAR" ]; then
+    echo "  -> Downloading jsr305 ${JSR305_VERSION}..."
+    curl -sL "$JSR305_URL" -o "$LIB_DIR/$JSR305_JAR" || echo "  Warning: Failed to download jsr305"
+fi
+
+# Download Error Prone Annotations (Guava transitive dependency)
+ERROR_PRONE_VERSION="2.36.0"
+ERROR_PRONE_JAR="error_prone_annotations-${ERROR_PRONE_VERSION}.jar"
+ERROR_PRONE_URL="https://repo1.maven.org/maven2/com/google/errorprone/error_prone_annotations/${ERROR_PRONE_VERSION}/${ERROR_PRONE_JAR}"
+
+if [ ! -f "$LIB_DIR/$ERROR_PRONE_JAR" ]; then
+    echo "  -> Downloading error_prone_annotations ${ERROR_PRONE_VERSION}..."
+    curl -sL "$ERROR_PRONE_URL" -o "$LIB_DIR/$ERROR_PRONE_JAR" || echo "  Warning: Failed to download error_prone_annotations"
 fi
 
 # Create source directories
@@ -160,7 +238,7 @@ TARGET_DIR="$PROJECT_ROOT/target/classes"
 mkdir -p "$TARGET_DIR"
 
 # Build classpath
-CLASSPATH="$LIB_DIR/$PICOLI_JAR:$LIB_DIR/$PALANTIR_JAR:$LIB_DIR/$PALANTIR_SPI_JAR:$LIB_DIR/$GUAVA_JAR:$LIB_DIR/$FAILUREACCESS_JAR:$LIB_DIR/$TOML4J_JAR:$LIB_DIR/$GSON_JAR"
+CLASSPATH="$LIB_DIR/$PICOLI_JAR:$LIB_DIR/$PALANTIR_JAR:$LIB_DIR/$PALANTIR_SPI_JAR:$LIB_DIR/$FJ_JAR:$LIB_DIR/$GUAVA_JAR:$LIB_DIR/$FAILUREACCESS_JAR:$LIB_DIR/$JACKSON_CORE_JAR:$LIB_DIR/$JACKSON_DATABIND_JAR:$LIB_DIR/$JACKSON_ANNOTATIONS_JAR:$LIB_DIR/$JACKSON_DATATYPE_JAR:$LIB_DIR/$JACKSON_MODULE_JAR:$LIB_DIR/$JSR305_JAR:$LIB_DIR/$ERROR_PRONE_JAR:$LIB_DIR/$TOML4J_JAR:$LIB_DIR/$GSON_JAR"
 
 # Compile all Java files with Java 21 bytecode target
 # Using --release 21 ensures Java 21 API compatibility and bytecode version
@@ -188,7 +266,7 @@ JAR_FILE="$BIN_DIR/jpm.jar"
 cat > "$TARGET_DIR/MANIFEST.MF" << EOF
 Manifest-Version: 1.0
 Main-Class: jpm.Main
-Class-Path: $LIB_DIR/$PICOLI_JAR $LIB_DIR/$PALANTIR_JAR $LIB_DIR/$PALANTIR_SPI_JAR $LIB_DIR/$GUAVA_JAR $LIB_DIR/$FAILUREACCESS_JAR $LIB_DIR/$TOML4J_JAR $LIB_DIR/$GSON_JAR
+Class-Path: $LIB_DIR/$PICOLI_JAR $LIB_DIR/$PALANTIR_JAR $LIB_DIR/$PALANTIR_SPI_JAR $LIB_DIR/$FJ_JAR $LIB_DIR/$GUAVA_JAR $LIB_DIR/$FAILUREACCESS_JAR $LIB_DIR/$JACKSON_CORE_JAR $LIB_DIR/$JACKSON_DATABIND_JAR $LIB_DIR/$JACKSON_ANNOTATIONS_JAR $LIB_DIR/$JACKSON_DATATYPE_JAR $LIB_DIR/$JACKSON_MODULE_JAR $LIB_DIR/$JSR305_JAR $LIB_DIR/$ERROR_PRONE_JAR $LIB_DIR/$TOML4J_JAR $LIB_DIR/$GSON_JAR
 EOF
 
 # Package JAR
@@ -198,7 +276,9 @@ jar cfm "$JAR_FILE" "$TARGET_DIR/MANIFEST.MF" -C "$TARGET_DIR" .
 echo "  -> Creating jpm wrapper script..."
 cat > "$BIN_DIR/jpm" << EOF
 #!/bin/bash
-java -cp "$JAR_FILE:$LIB_DIR/$PICOLI_JAR:$LIB_DIR/$PALANTIR_JAR:$LIB_DIR/$PALANTIR_SPI_JAR:$LIB_DIR/$GUAVA_JAR:$LIB_DIR/$FAILUREACCESS_JAR:$LIB_DIR/$TOML4J_JAR:$LIB_DIR/$GSON_JAR" jpm.Main "\$@"
+# JVM arguments required for Palantir Java Format (access to jdk.compiler internals)
+JVM_EXPORTS="--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED"
+java \$JVM_EXPORTS -cp "$JAR_FILE:$LIB_DIR/$PICOLI_JAR:$LIB_DIR/$PALANTIR_JAR:$LIB_DIR/$PALANTIR_SPI_JAR:$LIB_DIR/$FJ_JAR:$LIB_DIR/$GUAVA_JAR:$LIB_DIR/$FAILUREACCESS_JAR:$LIB_DIR/$JACKSON_CORE_JAR:$LIB_DIR/$JACKSON_DATABIND_JAR:$LIB_DIR/$JACKSON_ANNOTATIONS_JAR:$LIB_DIR/$JACKSON_DATATYPE_JAR:$LIB_DIR/$JACKSON_MODULE_JAR:$LIB_DIR/$JSR305_JAR:$LIB_DIR/$ERROR_PRONE_JAR:$LIB_DIR/$TOML4J_JAR:$LIB_DIR/$GSON_JAR" jpm.Main "\$@"
 EOF
 
 chmod +x "$BIN_DIR/jpm"
