@@ -33,7 +33,7 @@ class JpmConfigTest {
         var pkg = new JpmConfig.PackageConfig("my-app", "1.0.0", "21");
         var deps = Map.of("com.example:lib", "1.0.0");
         
-        var config = new JpmConfig(pkg, new HashMap<>(deps));
+        var config = new JpmConfig(pkg, new HashMap<>(deps), new HashMap<>());
         
         assertEquals("my-app", config.package_().name());
         assertEquals("1.0.0", config.package_().version());

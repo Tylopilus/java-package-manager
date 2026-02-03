@@ -47,6 +47,34 @@ if [ ! -f "$LIB_DIR/$GSON_JAR" ]; then
     curl -sL "$GSON_URL" -o "$LIB_DIR/$GSON_JAR"
 fi
 
+# Download JUnit 5 (for testing support)
+JUNIT_VERSION="5.11.3"
+JUNIT_PLATFORM_VERSION="1.11.3"
+JUNIT_JAR="junit-jupiter-${JUNIT_VERSION}.jar"
+JUNIT_PLATFORM_JAR="junit-platform-console-standalone-${JUNIT_PLATFORM_VERSION}.jar"
+JUNIT_URL="https://repo1.maven.org/maven2/org/junit/jupiter/junit-jupiter/${JUNIT_VERSION}/${JUNIT_JAR}"
+JUNIT_PLATFORM_URL="https://repo1.maven.org/maven2/org/junit/platform/junit-platform-console-standalone/${JUNIT_PLATFORM_VERSION}/${JUNIT_PLATFORM_JAR}"
+
+if [ ! -f "$LIB_DIR/$JUNIT_JAR" ]; then
+    echo "  -> Downloading junit-jupiter ${JUNIT_VERSION}..."
+    curl -sL "$JUNIT_URL" -o "$LIB_DIR/$JUNIT_JAR" || echo "  Warning: Failed to download JUnit Jupiter"
+fi
+
+if [ ! -f "$LIB_DIR/$JUNIT_PLATFORM_JAR" ]; then
+    echo "  -> Downloading junit-platform ${JUNIT_PLATFORM_VERSION}..."
+    curl -sL "$JUNIT_PLATFORM_URL" -o "$LIB_DIR/$JUNIT_PLATFORM_JAR" || echo "  Warning: Failed to download JUnit Platform"
+fi
+
+# Download Palantir Java Format (for code formatting)
+PALANTIR_VERSION="2.50.0"
+PALANTIR_JAR="palantir-java-format-${PALANTIR_VERSION}-all.jar"
+PALANTIR_URL="https://repo1.maven.org/maven2/com/palantir/javaformat/palantir-java-format/${PALANTIR_VERSION}/${PALANTIR_JAR}"
+
+if [ ! -f "$LIB_DIR/$PALANTIR_JAR" ]; then
+    echo "  -> Downloading palantir-java-format ${PALANTIR_VERSION}..."
+    curl -sL "$PALANTIR_URL" -o "$LIB_DIR/$PALANTIR_JAR" || echo "  Warning: Failed to download Palantir formatter"
+fi
+
 # Create source directories
 echo "  -> Creating project structure..."
 mkdir -p "$PROJECT_ROOT/src/jpm/cli"

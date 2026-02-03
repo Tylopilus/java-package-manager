@@ -10,11 +10,12 @@ import java.util.Map;
  */
 public record JpmConfig(
     PackageConfig package_,
-    Map<String, String> dependencies
+    Map<String, String> dependencies,
+    Map<String, ProfileConfig> profiles
 ) {
-    
+
     public JpmConfig() {
-        this(new PackageConfig(), new HashMap<>());
+        this(new PackageConfig(), new HashMap<>(), new HashMap<>());
     }
     
     /**
@@ -55,16 +56,26 @@ public record JpmConfig(
      * @return a new JpmConfig instance
      */
     public JpmConfig withPackage(PackageConfig newPackage) {
-        return new JpmConfig(newPackage, new HashMap<>(dependencies));
+        return new JpmConfig(newPackage, new HashMap<>(dependencies), new HashMap<>(profiles));
     }
-    
+
     /**
      * Creates a copy of this config with new dependencies.
-     * 
+     *
      * @param newDependencies the new dependencies map
      * @return a new JpmConfig instance
      */
     public JpmConfig withDependencies(Map<String, String> newDependencies) {
-        return new JpmConfig(package_, new HashMap<>(newDependencies));
+        return new JpmConfig(package_, new HashMap<>(newDependencies), new HashMap<>(profiles));
+    }
+
+    /**
+     * Creates a copy of this config with new profiles.
+     *
+     * @param newProfiles the new profiles map
+     * @return a new JpmConfig instance
+     */
+    public JpmConfig withProfiles(Map<String, ProfileConfig> newProfiles) {
+        return new JpmConfig(package_, new HashMap<>(dependencies), new HashMap<>(newProfiles));
     }
 }

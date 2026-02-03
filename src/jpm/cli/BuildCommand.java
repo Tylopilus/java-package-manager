@@ -22,6 +22,9 @@ public class BuildCommand implements Callable<Integer> {
     @Option(names = {"--no-ide-files"}, description = "Skip generation of IDE configuration files (.project, .classpath)")
     private boolean noIdeFiles;
 
+    @Option(names = {"--profile"}, description = "Build profile to use (dev, release, test)", defaultValue = "dev")
+    private String profile;
+
     @Override
     public Integer call() {
         try {
@@ -68,7 +71,7 @@ public class BuildCommand implements Callable<Integer> {
                 }
             }
 
-            // Compile
+            // Compile with profile-specific settings
             var sourceDir = new File("src");
             var outputDir = new File("target/classes");
             
@@ -77,8 +80,15 @@ public class BuildCommand implements Callable<Integer> {
                 return 1;
             }
             
+            // Load profile configuration
+            var profileConfig = config.profiles().getOrDefault(profile, 
+                jpm.config.ProfileConfig.dev());
+            
+            System.out.println("Using profile: " + profile);
+            
             var compiler = new Compiler();
-            var result = compiler.compile(sourceDir, outputDir, classpath);
+            var compilerArgs = profileConfig.getEffectiveCompilerArgs();
+            var result = compiler.compileWithArgs(sourceDir, outputDir, classpath, compilerArgs);
             
             if (result.success()) {
                 System.out.println("Build successful! Output in target/classes/");

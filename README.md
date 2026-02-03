@@ -12,6 +12,9 @@ A Cargo-inspired package manager for Java with direct Maven Central integration.
 - **Parent POM Resolution** - Follows Maven parent POMs for correct transitive dependencies
 - **Fast Local Cache** - Dependencies cached in `~/.jpm/cache/`
 - **Lockfile Support** - `jpm.lock` for fast, reproducible builds
+- **Integrated Testing** - `jpm test` with JUnit 5 and CI-ready XML reports
+- **Build Profiles** - dev, release, and test profiles with different optimization levels
+- **Code Formatting** - Palantir Java Format integration with CI check mode
 - **Zero External Runtime Dependencies** - Just JDK + bootstrap libraries
 - **Self-Hosting** - jpm builds itself
 - **Modern Java 21+** - Uses records, virtual threads, and pattern matching
@@ -63,14 +66,53 @@ jpm add --yes guava    # Non-interactive mode, auto-confirm
 ### Build and Run
 
 ```bash
-jpm build              # Compile only
-jpm build --force-resolve   # Force dependency re-resolution
-jpm build --no-ide-files    # Skip IDE file generation
-jpm run                # Build + run
-jpm run --force-resolve     # Force dependency re-resolution
-jpm run --no-ide-files      # Skip IDE file generation
+jpm build              # Compile only (uses dev profile by default)
+jpm build --profile release   # Compile with release optimizations
+jpm build --force-resolve     # Force dependency re-resolution
+jpm build --no-ide-files      # Skip IDE file generation
+jpm run                # Build + run (uses dev profile by default)
+jpm run --profile release     # Build + run with release optimizations
 jpm clean              # Remove target/
 ```
+
+### Testing
+
+JPM includes integrated JUnit 5 testing support out of the box:
+
+```bash
+jpm test               # Run all tests in src/test/java/
+jpm test --filter MyTest    # Run tests matching pattern
+jpm test --no-parallel      # Disable parallel execution
+```
+
+**JUnit 5 is automatically included** - no setup required. Just add test files to `src/test/java/`:
+
+```java
+// src/test/java/MyTest.java
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
+
+class MyTest {
+    @Test
+    void shouldDoSomething() {
+        assertEquals(4, 2 + 2);
+    }
+}
+```
+
+**CI Integration:** Tests generate `target/jpm-test-report.xml` in standard JUnit XML format for Jenkins, GitHub Actions, etc.
+
+### Code Formatting
+
+Format your code with Palantir Java Format:
+
+```bash
+jpm fmt                # Format all Java files in src/
+jpm fmt --check        # Check formatting (CI mode - fails if unformatted)
+jpm fmt src/Main.java  # Format specific file
+```
+
+**CI Integration:** Use `jpm fmt --check` in pre-commit hooks or CI pipelines. It returns exit code 1 if any files need formatting.
 
 ## Commands
 
@@ -80,11 +122,18 @@ jpm clean              # Remove target/
 | `jpm add <dep>`         | Add dependency with transitive resolution | `jpm add com.google.guava:guava:32.1.3-jre` |
 | `jpm remove <artifact>` | Remove dependency                         | `jpm remove guava`                          |
 | `jpm build`             | Compile src/ → target/classes/            | `jpm build`                                 |
+| `jpm build --profile <name>` | Compile with specific profile (dev/release/test) | `jpm build --profile release`        |
 | `jpm build --force-resolve` | Compile with fresh dependency resolution | `jpm build --force-resolve`          |
 | `jpm build --no-ide-files` | Compile without generating IDE files | `jpm build --no-ide-files`          |
 | `jpm run`               | Build + execute Main class                | `jpm run`                                   |
+| `jpm run --profile <name>` | Run with specific profile                | `jpm run --profile dev`               |
 | `jpm run --force-resolve` | Build + run with fresh resolution      | `jpm run --force-resolve`             |
 | `jpm run --no-ide-files` | Build + run without generating IDE files | `jpm run --no-ide-files`             |
+| `jpm test`              | Run all JUnit 5 tests in src/test/java/   | `jpm test`                                  |
+| `jpm test --filter <pattern>` | Run tests matching pattern         | `jpm test --filter UserTest`          |
+| `jpm test --no-parallel` | Disable parallel test execution          | `jpm test --no-parallel`              |
+| `jpm fmt`               | Format Java code with Palantir formatter | `jpm fmt`                                 |
+| `jpm fmt --check`      | Check formatting (CI mode)              | `jpm fmt --check`                         |
 | `jpm clean`             | Delete target/ directory                  | `jpm clean`                                 |
 | `jpm sync`              | Sync IDE configuration (`.classpath`, `.project`) | `jpm sync`                          |
 
@@ -159,6 +208,60 @@ java-version = "21"
 ### Dependency Format
 
 Dependencies use Maven coordinates: `groupId:artifactId:version`
+
+### Build Profiles
+
+Define different build configurations for development, testing, and production:
+
+```toml
+[package]
+name = "my-app"
+version = "1.0.0"
+java-version = "21"
+
+[dependencies]
+"com.google.guava:guava" = "32.1.3-jre"
+
+# Development profile (default)
+[profile.dev]
+compiler-args = ["-g", "-parameters"]    # Debug symbols, method params
+jvm-args = ["-ea"]                       # Enable assertions
+
+# Release profile - optimized for production
+[profile.release]
+compiler-args = ["-O", "-parameters"]    # Optimization enabled
+jvm-args = ["-server", "-Xmx2g"]         # Server VM, 2GB heap
+strip-debug = true
+
+# Test profile - inherits from dev
+[profile.test]
+inherits = "dev"
+compiler-args = ["-g:vars", "-parameters"]  # Local variable debug info
+```
+
+**Default Profiles:**
+
+- **dev**: Fast compilation, debug symbols, assertions enabled (default for `jpm build` and `jpm run`)
+- **release**: Optimized bytecode, server VM, 2GB heap default, stripped debug symbols
+- **test**: Inherits from dev, optimized for test debugging
+
+**Profile Inheritance:**
+
+Profiles can inherit from other profiles using the `inherits` key. Child profile settings override parent settings:
+
+```toml
+[profile.staging]
+inherits = "release"
+jvm-args = ["-server", "-Xmx4g"]    # Override heap size
+```
+
+**Usage:**
+
+```bash
+jpm build --profile release    # Production build with optimizations
+jpm run --profile dev          # Development run (default)
+jpm test                       # Automatically uses test profile
+```
 
 In `jpm.toml`, they are stored as:
 

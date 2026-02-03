@@ -16,12 +16,6 @@ version = "2.0.9"
 path = "/home/helge/.jpm/cache/org/slf4j/slf4j-simple/2.0.9/slf4j-simple-2.0.9.jar"
 
 [[dependencies]]
-group = "org.slf4j"
-artifact = "slf4j-api"
-version = "2.0.9"
-path = "/home/helge/.jpm/cache/org/slf4j/slf4j-api/2.0.9/slf4j-api-2.0.9.jar"
-
-[[dependencies]]
 group = "com.fasterxml.jackson.core"
 artifact = "jackson-databind"
 version = "2.17.2"

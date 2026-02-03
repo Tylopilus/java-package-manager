@@ -6,6 +6,7 @@ import jpm.utils.FileUtils;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -46,7 +47,20 @@ public class ConfigParser {
             }
         }
         
-        return new JpmConfig(pkg, deps);
+        // Parse profile sections
+        var profiles = new HashMap<String, ProfileConfig>();
+        for (var entry : toml.entrySet()) {
+            var key = entry.getKey();
+            if (key.startsWith("profile.")) {
+                var profileName = key.substring("profile.".length());
+                var profileToml = toml.getTable(key);
+                if (profileToml != null) {
+                    profiles.put(profileName, parseProfile(profileName, profileToml));
+                }
+            }
+        }
+
+        return new JpmConfig(pkg, deps, profiles);
     }
     
     /**
@@ -81,7 +95,67 @@ public class ConfigParser {
             }
         }
         
+        // Profiles section
+        if (!config.profiles().isEmpty()) {
+            for (var entry : config.profiles().entrySet()) {
+                var profileName = entry.getKey();
+                var profile = entry.getValue();
+                toml.append("\n[profile.").append(profileName).append("]\n");
+                if (profile.inherits() != null) {
+                    toml.append("inherits = \"").append(escape(profile.inherits())).append("\"\n");
+                }
+                if (profile.optimize()) {
+                    toml.append("optimize = true\n");
+                }
+                if (profile.stripDebug()) {
+                    toml.append("strip-debug = true\n");
+                }
+                if (!profile.compilerArgs().isEmpty()) {
+                    toml.append("compiler-args = [");
+                    var args = profile.compilerArgs();
+                    for (int i = 0; i < args.size(); i++) {
+                        if (i > 0) toml.append(", ");
+                        toml.append("\"").append(escape(args.get(i))).append("\"");
+                    }
+                    toml.append("]\n");
+                }
+                if (!profile.jvmArgs().isEmpty()) {
+                    toml.append("jvm-args = [");
+                    var args = profile.jvmArgs();
+                    for (int i = 0; i < args.size(); i++) {
+                        if (i > 0) toml.append(", ");
+                        toml.append("\"").append(escape(args.get(i))).append("\"");
+                    }
+                    toml.append("]\n");
+                }
+            }
+        }
+
         FileUtils.writeFile(configFile, toml.toString());
+    }
+
+    private static ProfileConfig parseProfile(String name, Toml toml) {
+        var compilerArgs = toml.getList("compiler-args");
+        var jvmArgs = toml.getList("jvm-args");
+        var deps = new HashMap<String, String>();
+
+        var depsToml = toml.getTable("dependencies");
+        if (depsToml != null) {
+            for (var entry : depsToml.entrySet()) {
+                String key = stripQuotes(entry.getKey());
+                deps.put(key, entry.getValue().toString());
+            }
+        }
+
+        return new ProfileConfig(
+            name,
+            compilerArgs != null ? compilerArgs.stream().map(Object::toString).toList() : List.of(),
+            jvmArgs != null ? jvmArgs.stream().map(Object::toString).toList() : List.of(),
+            toml.getBoolean("optimize", false),
+            toml.getBoolean("strip-debug", false),
+            toml.getString("inherits"),
+            deps
+        );
     }
     
     private static String escape(String value) {
@@ -99,7 +173,7 @@ public class ConfigParser {
     
     /**
      * Loads an existing configuration or creates a new one with defaults.
-     * 
+     *
      * @param configFile the configuration file
      * @return existing or new JpmConfig
      * @throws IOException if reading fails
@@ -108,7 +182,7 @@ public class ConfigParser {
         var config = load(configFile);
         if (config == null) {
             var pkg = new JpmConfig.PackageConfig(null, "0.1.0", "21");
-            config = new JpmConfig(pkg, new HashMap<>());
+            config = new JpmConfig(pkg, new HashMap<>(), new HashMap<>());
         }
         return config;
     }

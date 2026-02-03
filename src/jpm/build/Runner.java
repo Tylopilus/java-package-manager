@@ -13,6 +13,103 @@ public class Runner {
      */
     public record RunResult(boolean success, int exitCode) {}
     
+    /**
+     * Runs the main class with profile-specific JVM arguments.
+     * 
+     * @param mainClass the main class to run
+     * @param classesDir the classes directory
+     * @param classpath the dependency classpath
+     * @param jvmArgs JVM arguments from profile (e.g., -ea, -server, -Xmx2g)
+     * @return RunResult with exit code
+     * @throws IOException if execution fails
+     */
+    public RunResult runWithJvmArgs(String mainClass, File classesDir, String classpath, List<String> jvmArgs) throws IOException {
+        var command = new ArrayList<String>();
+        command.add("java");
+        
+        // Add profile-specific JVM arguments
+        if (jvmArgs != null && !jvmArgs.isEmpty()) {
+            command.addAll(jvmArgs);
+        }
+        
+        var fullClasspath = new StringBuilder();
+        fullClasspath.append(classesDir.getAbsolutePath());
+        
+        if (classpath != null && !classpath.isEmpty()) {
+            fullClasspath.append(File.pathSeparator);
+            fullClasspath.append(classpath);
+        }
+        
+        command.add("-cp");
+        command.add(fullClasspath.toString());
+        command.add(mainClass);
+        
+        var pb = new ProcessBuilder(command);
+        pb.inheritIO();
+        
+        var process = pb.start();
+        
+        try {
+            var exitCode = process.waitFor();
+            return new RunResult(exitCode == 0, exitCode);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return new RunResult(false, 1);
+        }
+    }
+    
+    /**
+     * Runs the main class with both program arguments and profile-specific JVM arguments.
+     * 
+     * @param mainClass the main class to run
+     * @param classesDir the classes directory
+     * @param classpath the dependency classpath
+     * @param args program arguments to pass to main()
+     * @param jvmArgs JVM arguments from profile
+     * @return RunResult with exit code
+     * @throws IOException if execution fails
+     */
+    public RunResult runWithArgsAndJvmArgs(String mainClass, File classesDir, String classpath, String[] args, List<String> jvmArgs) throws IOException {
+        var command = new ArrayList<String>();
+        command.add("java");
+        
+        // Add profile-specific JVM arguments
+        if (jvmArgs != null && !jvmArgs.isEmpty()) {
+            command.addAll(jvmArgs);
+        }
+        
+        var fullClasspath = new StringBuilder();
+        fullClasspath.append(classesDir.getAbsolutePath());
+        
+        if (classpath != null && !classpath.isEmpty()) {
+            fullClasspath.append(File.pathSeparator);
+            fullClasspath.append(classpath);
+        }
+        
+        command.add("-cp");
+        command.add(fullClasspath.toString());
+        command.add(mainClass);
+        
+        if (args != null) {
+            for (var arg : args) {
+                command.add(arg);
+            }
+        }
+        
+        var pb = new ProcessBuilder(command);
+        pb.inheritIO();
+        
+        var process = pb.start();
+        
+        try {
+            var exitCode = process.waitFor();
+            return new RunResult(exitCode == 0, exitCode);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return new RunResult(false, 1);
+        }
+    }
+    
     public RunResult run(String mainClass, File classesDir, String classpath) throws IOException {
         // Build java command
         var command = new ArrayList<String>();

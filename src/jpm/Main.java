@@ -5,6 +5,8 @@ import jpm.cli.AddCommand;
 import jpm.cli.RemoveCommand;
 import jpm.cli.BuildCommand;
 import jpm.cli.RunCommand;
+import jpm.cli.TestCommand;
+import jpm.cli.FormatCommand;
 import jpm.cli.CleanCommand;
 import jpm.cli.SyncCommand;
 import picocli.CommandLine;
@@ -21,6 +23,8 @@ import picocli.CommandLine.Command;
         RemoveCommand.class,
         BuildCommand.class,
         RunCommand.class,
+        TestCommand.class,
+        FormatCommand.class,
         CleanCommand.class,
         SyncCommand.class
     }

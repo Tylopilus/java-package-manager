@@ -16,8 +16,12 @@ public class Compiler {
      * Uses Java 16+ records for concise immutable data classes.
      */
     public record CompileResult(boolean success, String output, int exitCode) {}
-    
+
     public CompileResult compile(File sourceDir, File outputDir, String classpath) throws IOException {
+        return compileWithArgs(sourceDir, outputDir, classpath, List.of());
+    }
+
+    public CompileResult compileWithArgs(File sourceDir, File outputDir, String classpath, List<String> compilerArgs) throws IOException {
         // Find all Java source files
         var sourceFiles = findSourceFiles(sourceDir);
         
@@ -38,7 +42,11 @@ public class Compiler {
             command.add("-cp");
             command.add(classpath);
         }
-        
+
+        if (!compilerArgs.isEmpty()) {
+            command.addAll(compilerArgs);
+        }
+
         command.addAll(sourceFiles);
         
         // Execute

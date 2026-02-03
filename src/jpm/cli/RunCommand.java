@@ -26,6 +26,9 @@ public class RunCommand implements Callable<Integer> {
     @Option(names = {"--no-ide-files"}, description = "Skip generation of IDE configuration files (.project, .classpath)")
     private boolean noIdeFiles;
 
+    @Option(names = {"--profile"}, description = "Build profile to use (dev, release, test)", defaultValue = "dev")
+    private String profile;
+
     @Override
     public Integer call() {
         try {
@@ -85,7 +88,7 @@ public class RunCommand implements Callable<Integer> {
                 }
             }
 
-            // Compile
+            // Compile with profile-specific settings
             var sourceDir = new File("src");
             var outputDir = new File("target/classes");
             
@@ -94,8 +97,15 @@ public class RunCommand implements Callable<Integer> {
                 return 1;
             }
             
+            // Load profile configuration
+            var profileConfig = config.profiles().getOrDefault(profile, 
+                jpm.config.ProfileConfig.dev());
+            
+            System.out.println("Using profile: " + profile);
+            
             var compiler = new Compiler();
-            var compileResult = compiler.compile(sourceDir, outputDir, classpath);
+            var compilerArgs = profileConfig.getEffectiveCompilerArgs();
+            var compileResult = compiler.compileWithArgs(sourceDir, outputDir, classpath, compilerArgs);
             
             if (!compileResult.success()) {
                 System.err.println("Build failed with exit code " + compileResult.exitCode());
@@ -104,15 +114,16 @@ public class RunCommand implements Callable<Integer> {
             
             System.out.println("Running...\n");
             
-            // Run
+            // Run with profile-specific JVM args
             var runner = new Runner();
             var mainClass = "Main";
+            var jvmArgs = profileConfig.getEffectiveJvmArgs();
             
             Runner.RunResult runResult;
             if (args != null && args.length > 0) {
-                runResult = runner.runWithArgs(mainClass, outputDir, classpath, args);
+                runResult = runner.runWithArgsAndJvmArgs(mainClass, outputDir, classpath, args, jvmArgs);
             } else {
-                runResult = runner.run(mainClass, outputDir, classpath);
+                runResult = runner.runWithJvmArgs(mainClass, outputDir, classpath, jvmArgs);
             }
             
             return runResult.exitCode();
