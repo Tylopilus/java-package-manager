@@ -150,7 +150,7 @@ public class PomParser {
             try {
                 var parentInfo = parentResolver.resolveParentChain(groupId, artifactId, version, 0, new HashSet<>());
                 if (parentInfo != null) {
-                    var inheritedProps = parentInfo.getAllProperties();
+                    var inheritedProps = parentInfo.allProperties();
                     // Parent properties override built-ins, current overrides parent
                     allProps.putAll(inheritedProps);
                 }
@@ -182,7 +182,7 @@ public class PomParser {
                 try {
                     var parentInfo = parentResolver.resolveParentChain(groupId, artifactId, version, 0, new HashSet<>());
                     if (parentInfo != null) {
-                        var inheritedManaged = parentInfo.getAllManagedVersions();
+                        var inheritedManaged = parentInfo.allManagedVersions();
                         // Parent managed versions are base, current overrides
                         allManaged.putAll(inheritedManaged);
                     }

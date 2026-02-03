@@ -7,6 +7,10 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
+/**
+ * Resolves parent POM chains using immutable PomInfo records.
+ * Uses Java 21 pattern matching and virtual thread-friendly design.
+ */
 public class ParentPomResolver {
     
     private static final int MAX_PARENT_DEPTH = 10;
@@ -27,6 +31,18 @@ public class ParentPomResolver {
         this.docBuilder = factory.newDocumentBuilder();
     }
     
+    /**
+     * Resolves the parent POM chain for a given artifact.
+     * Uses pattern matching for switch expressions where applicable.
+     * 
+     * @param groupId the group ID
+     * @param artifactId the artifact ID  
+     * @param version the version
+     * @param depth current recursion depth
+     * @param visited set of visited coordinates to detect cycles
+     * @return the resolved PomInfo with parent chain
+     * @throws IOException if download fails
+     */
     public PomInfo resolveParentChain(String groupId, String artifactId, String version, 
                                       int depth, Set<String> visited) throws IOException {
         // Check depth limit
@@ -62,17 +78,18 @@ public class ParentPomResolver {
         try {
             PomInfo pomInfo = parsePom(pomContent, groupId, artifactId, version);
             
-            // Check if this POM has a parent
-            if (pomInfo.getParent() != null) {
-                PomInfo parentInfo = pomInfo.getParent();
+            // Check if this POM has a parent and resolve recursively
+            if (pomInfo.parent() != null) {
+                PomInfo parentInfo = pomInfo.parent();
                 PomInfo resolvedParent = resolveParentChain(
-                    parentInfo.getGroupId(), 
-                    parentInfo.getArtifactId(), 
-                    parentInfo.getVersion(), 
+                    parentInfo.groupId(), 
+                    parentInfo.artifactId(), 
+                    parentInfo.version(), 
                     depth + 1, 
                     visited
                 );
-                pomInfo.setParent(resolvedParent);
+                // Create new PomInfo with resolved parent using record's withParent
+                pomInfo = pomInfo.withParent(resolvedParent);
             }
             
             // Print timing on root call
@@ -119,30 +136,28 @@ public class ParentPomResolver {
     }
     
     private PomInfo parsePom(String pomContent, String groupId, String artifactId, String version) throws Exception {
-        PomInfo pomInfo = new PomInfo();
-        pomInfo.setGroupId(groupId);
-        pomInfo.setArtifactId(artifactId);
-        pomInfo.setVersion(version);
+        // Start with empty PomInfo and build up using immutable operations
+        PomInfo pomInfo = new PomInfo(groupId, artifactId, version, new HashMap<>(), new HashMap<>(), null);
         
         InputStream is = new ByteArrayInputStream(pomContent.getBytes(StandardCharsets.UTF_8));
         Document doc = docBuilder.parse(is);
         
-        // Extract properties
-        extractProperties(doc, pomInfo);
+        // Extract properties using immutable updates
+        pomInfo = extractProperties(doc, pomInfo);
         
         // Extract dependency management versions
-        extractDependencyManagement(doc, pomInfo);
+        pomInfo = extractDependencyManagement(doc, pomInfo);
         
         // Extract parent info
         PomInfo parentInfo = extractParentInfo(doc);
         if (parentInfo != null) {
-            pomInfo.setParent(parentInfo);
+            pomInfo = pomInfo.withParent(parentInfo);
         }
         
         return pomInfo;
     }
     
-    private void extractProperties(Document doc, PomInfo pomInfo) {
+    private PomInfo extractProperties(Document doc, PomInfo pomInfo) {
         NodeList propNodes = doc.getElementsByTagName("properties");
         if (propNodes.getLength() > 0) {
             Element propsElement = (Element) propNodes.item(0);
@@ -153,15 +168,18 @@ public class ParentPomResolver {
                     String name = node.getNodeName();
                     String value = node.getTextContent();
                     if (value != null) {
-                        pomInfo.addProperty("${" + name + "}", value.trim());
-                        pomInfo.addProperty(name, value.trim());
+                        String trimmedValue = value.trim();
+                        // Use immutable withProperty to add each property
+                        pomInfo = pomInfo.withProperty("${" + name + "}", trimmedValue)
+                                        .withProperty(name, trimmedValue);
                     }
                 }
             }
         }
+        return pomInfo;
     }
     
-    private void extractDependencyManagement(Document doc, PomInfo pomInfo) {
+    private PomInfo extractDependencyManagement(Document doc, PomInfo pomInfo) {
         NodeList dmNodes = doc.getElementsByTagName("dependencyManagement");
         if (dmNodes.getLength() > 0) {
             Element dmElement = (Element) dmNodes.item(0);
@@ -175,10 +193,12 @@ public class ParentPomResolver {
                 
                 if (depGroupId != null && depArtifactId != null && depVersion != null) {
                     String key = depGroupId + ":" + depArtifactId;
-                    pomInfo.addManagedVersion(key, depVersion.trim());
+                    // Use immutable withManagedVersion
+                    pomInfo = pomInfo.withManagedVersion(key, depVersion.trim());
                 }
             }
         }
+        return pomInfo;
     }
     
     private PomInfo extractParentInfo(Document doc) {
@@ -193,11 +213,15 @@ public class ParentPomResolver {
                 String parentVersion = getTextContent(parentElement, "version");
                 
                 if (parentGroupId != null && parentArtifactId != null && parentVersion != null) {
-                    PomInfo parentInfo = new PomInfo();
-                    parentInfo.setGroupId(parentGroupId.trim());
-                    parentInfo.setArtifactId(parentArtifactId.trim());
-                    parentInfo.setVersion(parentVersion.trim());
-                    return parentInfo;
+                    // Create parent PomInfo using record constructor
+                    return new PomInfo(
+                        parentGroupId.trim(),
+                        parentArtifactId.trim(),
+                        parentVersion.trim(),
+                        new HashMap<>(),
+                        new HashMap<>(),
+                        null
+                    );
                 }
             }
         }

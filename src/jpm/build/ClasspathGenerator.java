@@ -32,7 +32,7 @@ public class ClasspathGenerator {
         xml.append("\t<classpathentry kind=\"output\" path=\"target/classes\"/>\n");
         
         // JRE container
-        var javaVersion = config.getPackage().getJavaVersion();
+        var javaVersion = config.package_().javaVersion();
         if (javaVersion != null && !javaVersion.isEmpty()) {
             xml.append("\t<classpathentry kind=\"con\" path=\"org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-").append(javaVersion).append("\"/>\n");
         } else {
@@ -40,7 +40,7 @@ public class ClasspathGenerator {
         }
         
         // Dependency libraries (including transitive dependencies)
-        if (!config.getDependencies().isEmpty()) {
+        if (!config.dependencies().isEmpty()) {
             try {
                 var resolver = new DependencyResolver();
                 var deps = resolver.resolveWithLockfile(projectDir, config, false);
@@ -51,7 +51,7 @@ public class ClasspathGenerator {
                 }
             } catch (Exception e) {
                 // If resolution fails, fall back to direct dependencies only
-                for (var entry : config.getDependencies().entrySet()) {
+                for (var entry : config.dependencies().entrySet()) {
                     var parts = entry.getKey().split(":");
                     if (parts.length == 2) {
                         var groupId = parts[0];

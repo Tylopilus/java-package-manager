@@ -1,127 +1,113 @@
 package jpm.deps;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public class PomInfo {
-    private String groupId;
-    private String artifactId;
-    private String version;
-    private Map<String, String> properties;
-    private Map<String, String> managedVersions;
-    private PomInfo parent;
+/**
+ * Represents parsed POM information with support for parent inheritance.
+ * Uses Java 16+ records for immutable data representation.
+ */
+public record PomInfo(
+    String groupId,
+    String artifactId,
+    String version,
+    Map<String, String> properties,
+    Map<String, String> managedVersions,
+    PomInfo parent
+) {
     
     public PomInfo() {
-        this.properties = new HashMap<>();
-        this.managedVersions = new HashMap<>();
+        this(null, null, null, new HashMap<>(), new HashMap<>(), null);
     }
     
-    public String getGroupId() {
-        return groupId;
+    /**
+     * Compact constructor for defensive copying of mutable maps.
+     */
+    public PomInfo {
+        properties = properties != null ? new HashMap<>(properties) : new HashMap<>();
+        managedVersions = managedVersions != null ? new HashMap<>(managedVersions) : new HashMap<>();
     }
     
-    public void setGroupId(String groupId) {
-        this.groupId = groupId;
-    }
-    
-    public String getArtifactId() {
-        return artifactId;
-    }
-    
-    public void setArtifactId(String artifactId) {
-        this.artifactId = artifactId;
-    }
-    
-    public String getVersion() {
-        return version;
-    }
-    
-    public void setVersion(String version) {
-        this.version = version;
-    }
-    
-    public Map<String, String> getProperties() {
-        return properties;
-    }
-    
-    public void setProperties(Map<String, String> properties) {
-        this.properties = properties;
-    }
-    
-    public void addProperty(String key, String value) {
-        this.properties.put(key, value);
-    }
-    
-    public Map<String, String> getManagedVersions() {
-        return managedVersions;
-    }
-    
-    public void setManagedVersions(Map<String, String> managedVersions) {
-        this.managedVersions = managedVersions;
-    }
-    
-    public void addManagedVersion(String key, String version) {
-        this.managedVersions.put(key, version);
-    }
-    
-    public PomInfo getParent() {
-        return parent;
-    }
-    
-    public void setParent(PomInfo parent) {
-        this.parent = parent;
-    }
-    
-    public String getFullArtifactKey() {
+    /**
+     * Returns the full artifact coordinate (groupId:artifactId).
+     * 
+     * @return the artifact key
+     */
+    public String fullArtifactKey() {
         return groupId + ":" + artifactId;
     }
     
-    public Map<String, String> getAllProperties() {
-        Map<String, String> allProps = new HashMap<>();
-        
-        // Add parent properties first (will be overridden by child)
+    /**
+     * Returns all properties including inherited from parent chain.
+     * Built-in Maven properties are also included.
+     * 
+     * @return unmodifiable map of all properties
+     */
+    public Map<String, String> allProperties() {
+        var all = new HashMap<String, String>();
         if (parent != null) {
-            allProps.putAll(parent.getAllProperties());
+            all.putAll(parent.allProperties());
         }
-        
-        // Add current POM properties (override parent)
-        allProps.putAll(properties);
-        
+        all.putAll(properties);
         // Add built-in Maven properties
-        allProps.put("${project.groupId}", groupId);
-        allProps.put("${pom.groupId}", groupId);
-        allProps.put("${project.artifactId}", artifactId);
-        allProps.put("${pom.artifactId}", artifactId);
-        allProps.put("${project.version}", version);
-        allProps.put("${pom.version}", version);
-        allProps.put("${version}", version);
-        
-        return allProps;
+        all.put("${project.groupId}", groupId);
+        all.put("${pom.groupId}", groupId);
+        all.put("${project.artifactId}", artifactId);
+        all.put("${pom.artifactId}", artifactId);
+        all.put("${project.version}", version);
+        all.put("${pom.version}", version);
+        all.put("${version}", version);
+        return Collections.unmodifiableMap(all);
     }
     
-    public Map<String, String> getAllManagedVersions() {
-        Map<String, String> allManaged = new HashMap<>();
-        
-        // Add parent managed versions first
+    /**
+     * Returns all managed versions including inherited from parent chain.
+     * 
+     * @return unmodifiable map of all managed versions
+     */
+    public Map<String, String> allManagedVersions() {
+        var all = new HashMap<String, String>();
         if (parent != null) {
-            allManaged.putAll(parent.getAllManagedVersions());
+            all.putAll(parent.allManagedVersions());
         }
-        
-        // Add current POM managed versions (override parent)
-        allManaged.putAll(managedVersions);
-        
-        return allManaged;
+        all.putAll(managedVersions);
+        return Collections.unmodifiableMap(all);
     }
     
-    @Override
-    public String toString() {
-        return "PomInfo{" +
-                "groupId='" + groupId + '\'' +
-                ", artifactId='" + artifactId + '\'' +
-                ", version='" + version + '\'' +
-                ", properties=" + properties.size() +
-                ", managedVersions=" + managedVersions.size() +
-                ", hasParent=" + (parent != null) +
-                '}';
+    /**
+     * Creates a new PomInfo with an additional property.
+     * 
+     * @param key the property key
+     * @param value the property value
+     * @return a new PomInfo with the added property
+     */
+    public PomInfo withProperty(String key, String value) {
+        var newProps = new HashMap<>(properties);
+        newProps.put(key, value);
+        return new PomInfo(groupId, artifactId, version, newProps, managedVersions, parent);
+    }
+    
+    /**
+     * Creates a new PomInfo with an additional managed version.
+     * 
+     * @param key the dependency key (groupId:artifactId)
+     * @param version the version
+     * @return a new PomInfo with the added managed version
+     */
+    public PomInfo withManagedVersion(String key, String version) {
+        var newManaged = new HashMap<>(managedVersions);
+        newManaged.put(key, version);
+        return new PomInfo(groupId, artifactId, version, properties, newManaged, parent);
+    }
+    
+    /**
+     * Creates a new PomInfo with a different parent.
+     * 
+     * @param newParent the new parent PomInfo
+     * @return a new PomInfo with the updated parent
+     */
+    public PomInfo withParent(PomInfo newParent) {
+        return new PomInfo(groupId, artifactId, version, properties, managedVersions, newParent);
     }
 }

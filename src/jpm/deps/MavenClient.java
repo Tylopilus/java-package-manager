@@ -93,53 +93,46 @@ public class MavenClient {
     }
     
     /**
-     * Batch download multiple artifacts in parallel.
-     * This significantly speeds up dependency resolution by downloading
-     * artifacts concurrently rather than sequentially.
+     * Batch download multiple artifacts in parallel using virtual threads.
+     * Virtual threads provide optimal performance for I/O-bound operations
+     * like HTTP downloads without the overhead of traditional thread pools.
      * 
      * @param artifacts List of artifact coordinates to download
      * @return List of booleans indicating success for each download
      */
     public List<Boolean> downloadArtifactsBatch(List<ArtifactSpec> artifacts) {
         if (artifacts.isEmpty()) {
-            return new ArrayList<>();
+            return List.of();
         }
         
-        // Use executor for parallel downloads
-        ExecutorService executor = Executors.newFixedThreadPool(
-            Math.min(artifacts.size(), 10) // Max 10 concurrent downloads
-        );
-        
-        List<Future<Boolean>> futures = new ArrayList<>();
-        
-        for (ArtifactSpec spec : artifacts) {
-            Future<Boolean> future = executor.submit(() -> {
-                try {
-                    return downloadArtifact(spec.groupId, spec.artifactId, spec.version, 
-                                          spec.outputDir, spec.extension);
-                } catch (IOException e) {
-                    System.err.println("  Error downloading " + spec + ": " + e.getMessage());
-                    return false;
-                }
-            });
-            futures.add(future);
+        // Use virtual threads for optimal I/O-bound concurrency
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            var futures = artifacts.stream()
+                .map(spec -> executor.submit(() -> {
+                    try {
+                        return downloadArtifact(spec.groupId(), spec.artifactId(), spec.version(), 
+                                              spec.outputDir(), spec.extension());
+                    } catch (IOException e) {
+                        System.err.println("  Error downloading " + spec + ": " + e.getMessage());
+                        return false;
+                    }
+                }))
+                .toList();
+            
+            // Collect results
+            return futures.stream()
+                .map(f -> {
+                    try {
+                        return f.get();
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        return false;
+                    } catch (ExecutionException e) {
+                        return false;
+                    }
+                })
+                .toList();
         }
-        
-        // Collect results
-        List<Boolean> results = new ArrayList<>(artifacts.size());
-        for (Future<Boolean> future : futures) {
-            try {
-                results.add(future.get());
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                results.add(false);
-            } catch (ExecutionException e) {
-                results.add(false);
-            }
-        }
-        
-        executor.shutdown();
-        return results;
     }
     
     /**

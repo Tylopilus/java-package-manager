@@ -39,7 +39,7 @@ public class RunCommand implements Callable<Integer> {
             // Load config
             var config = ConfigParser.load(configFile);
 
-            System.out.println("Building " + config.getPackage().getName() + " v" + config.getPackage().getVersion());
+            System.out.println("Building " + config.package_().name() + " v" + config.package_().version());
 
             // Generate IDE files if missing and not disabled
             var projectDir = new File(".");
@@ -50,7 +50,7 @@ public class RunCommand implements Callable<Integer> {
 
             // Resolve dependencies
             var classpath = "";
-            if (!config.getDependencies().isEmpty()) {
+            if (!config.dependencies().isEmpty()) {
                 var resolver = new DependencyResolver();
                 var deps = resolver.resolveWithLockfile(projectDir, config, forceResolve);
                 classpath = ClasspathBuilder.buildClasspath(deps);

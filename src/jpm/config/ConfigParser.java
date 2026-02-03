@@ -8,52 +8,67 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Parser for JPM configuration files (jpm.toml).
+ * Handles reading and writing of project configuration with record-based JpmConfig.
+ */
 public class ConfigParser {
     
+    /**
+     * Loads a JPM configuration from a TOML file.
+     * 
+     * @param configFile the configuration file to load
+     * @return the loaded JpmConfig, or null if file doesn't exist
+     * @throws IOException if reading fails
+     */
     public static JpmConfig load(File configFile) throws IOException {
         if (!configFile.exists()) {
             return null;
         }
         
         var toml = new Toml().read(configFile);
-        var config = new JpmConfig();
         
         // Parse package section
         var packageToml = toml.getTable("package");
-        if (packageToml != null) {
-            var pkg = config.getPackage();
-            pkg.setName(packageToml.getString("name"));
-            pkg.setVersion(packageToml.getString("version"));
-            pkg.setJavaVersion(packageToml.getString("java-version"));
-        }
+        var pkg = new JpmConfig.PackageConfig(
+            packageToml != null ? packageToml.getString("name") : null,
+            packageToml != null ? packageToml.getString("version") : null,
+            packageToml != null ? packageToml.getString("java-version") : null
+        );
         
         // Parse dependencies section
+        var deps = new HashMap<String, String>();
         var depsToml = toml.getTable("dependencies");
         if (depsToml != null) {
-            var deps = new HashMap<String, String>();
             for (var entry : depsToml.entrySet()) {
                 String key = stripQuotes(entry.getKey());
                 deps.put(key, entry.getValue().toString());
             }
-            config.setDependencies(deps);
         }
         
-        return config;
+        return new JpmConfig(pkg, deps);
     }
     
+    /**
+     * Saves a JPM configuration to a TOML file.
+     * 
+     * @param config the configuration to save
+     * @param configFile the file to write to
+     * @throws IOException if writing fails
+     */
     public static void save(JpmConfig config, File configFile) throws IOException {
         var toml = new StringBuilder();
         
         // Package section
         toml.append("[package]\n");
-        toml.append("name = \"").append(escape(config.getPackage().getName())).append("\"\n");
-        toml.append("version = \"").append(escape(config.getPackage().getVersion())).append("\"\n");
-        toml.append("java-version = \"").append(escape(config.getPackage().getJavaVersion())).append("\"\n");
+        toml.append("name = \"").append(escape(config.package_().name())).append("\"\n");
+        toml.append("version = \"").append(escape(config.package_().version())).append("\"\n");
+        toml.append("java-version = \"").append(escape(config.package_().javaVersion())).append("\"\n");
         
         // Dependencies section
-        if (!config.getDependencies().isEmpty()) {
+        if (!config.dependencies().isEmpty()) {
             toml.append("\n[dependencies]\n");
-            for (var entry : config.getDependencies().entrySet()) {
+            for (var entry : config.dependencies().entrySet()) {
                 var key = entry.getKey();
                 var value = entry.getValue();
                 // Keys with special characters need quotes
@@ -82,12 +97,18 @@ public class ConfigParser {
         return value;
     }
     
+    /**
+     * Loads an existing configuration or creates a new one with defaults.
+     * 
+     * @param configFile the configuration file
+     * @return existing or new JpmConfig
+     * @throws IOException if reading fails
+     */
     public static JpmConfig loadOrCreate(File configFile) throws IOException {
         var config = load(configFile);
         if (config == null) {
-            config = new JpmConfig();
-            config.getPackage().setVersion("0.1.0");
-            config.getPackage().setJavaVersion("21");
+            var pkg = new JpmConfig.PackageConfig(null, "0.1.0", "21");
+            config = new JpmConfig(pkg, new HashMap<>());
         }
         return config;
     }

@@ -108,7 +108,7 @@ public class AddCommand implements Callable<Integer> {
             var projectFile = new File(".project");
             if (!projectFile.exists()) {
                 System.out.println("\nCreating .project file...");
-                var projectXml = generateProjectFile(config.getPackage().getName());
+                var projectXml = generateProjectFile(config.package_().name());
                 FileUtils.writeFile(projectFile, projectXml);
             }
             
@@ -130,35 +130,37 @@ public class AddCommand implements Callable<Integer> {
     private DependencyInfo parseDependency(String input) throws IOException {
         var parts = input.split(":");
         
-        if (parts.length == 3) {
-            // Full coordinates: group:artifact:version
-            return new DependencyInfo(parts[0], parts[1], parts[2]);
-        } else if (parts.length == 2) {
-            // Could be group:artifact or artifact:version
-            if (parts[0].contains(".")) {
-                // group:artifact - need to find version
-                var version = searchClient.getLatestStableVersion(parts[0], parts[1]);
-                if (version == null) {
-                    System.err.println("Error: Could not find latest stable version for " + parts[0] + ":" + parts[1]);
-                    return null;
+        // Pattern matching switch for dependency coordinate parsing
+        return switch (parts.length) {
+            case 3 -> new DependencyInfo(parts[0], parts[1], parts[2]);
+            case 2 -> {
+                // Could be group:artifact or artifact:version
+                if (parts[0].contains(".")) {
+                    // group:artifact format - need to find version
+                    var version = searchClient.getLatestStableVersion(parts[0], parts[1]);
+                    if (version == null) {
+                        System.err.println("Error: Could not find version for " + parts[0] + ":" + parts[1]);
+                        yield null;
+                    }
+                    yield confirmAndCreate(parts[0], parts[1], version);
+                } else {
+                    // artifact:version format - need to find groupId
+                    yield searchAndSelect(parts[0], parts[1]);
                 }
-                return confirmAndCreate(parts[0], parts[1], version);
-            } else {
-                // artifact:version - need to find groupId
-                return searchAndSelect(parts[0], parts[1]);
             }
-        } else if (parts.length == 1) {
-            // Just artifact name - search
-            if (noSearch) {
-                System.err.println("Error: Exact coordinates required. Use --no-search=false to enable search");
-                return null;
+            case 1 -> {
+                if (noSearch) {
+                    System.err.println("Error: Exact coordinates required. Use --no-search=false to enable search");
+                    yield null;
+                }
+                yield searchAndSelect(parts[0], null);
             }
-            return searchAndSelect(parts[0], null);
-        }
-        
-        System.err.println("Error: Invalid format: " + input);
-        System.err.println("Expected: group:artifact:version, group:artifact, artifact:version, or artifact");
-        return null;
+            default -> {
+                System.err.println("Error: Invalid format: " + input);
+                System.err.println("Expected: group:artifact:version, group:artifact, artifact:version, or artifact");
+                yield null;
+            }
+        };
     }
     
     private DependencyInfo searchAndSelect(String artifactId, String explicitVersion) throws IOException {
@@ -207,8 +209,8 @@ public class AddCommand implements Callable<Integer> {
         if (configFile.exists()) {
             try {
                 var config = ConfigParser.loadOrCreate(configFile);
-                if (config.getDependencies().containsKey(ga)) {
-                    var existingVersion = config.getDependencies().get(ga);
+                if (config.dependencies().containsKey(ga)) {
+                    var existingVersion = config.dependencies().get(ga);
                     if (existingVersion.equals(version)) {
                         System.out.println("Note: " + ga + " already at version " + version);
                         return new DependencyInfo(groupId, artifactId, version);

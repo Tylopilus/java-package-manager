@@ -73,7 +73,7 @@ public class LockfileManager {
             var digest = MessageDigest.getInstance("SHA-256");
             
             // Include all dependencies in hash computation
-            var deps = config.getDependencies();
+            var deps = config.dependencies();
             for (var entry : deps.entrySet()) {
                 var depString = entry.getKey() + "=" + entry.getValue() + ";";
                 digest.update(depString.getBytes(StandardCharsets.UTF_8));
@@ -92,7 +92,7 @@ public class LockfileManager {
         } catch (NoSuchAlgorithmException e) {
             // Fallback to simple string concatenation if SHA-256 not available
             var sb = new StringBuilder();
-            var deps = config.getDependencies();
+            var deps = config.dependencies();
             for (var entry : deps.entrySet()) {
                 sb.append(entry.getKey()).append("=").append(entry.getValue()).append(";");
             }

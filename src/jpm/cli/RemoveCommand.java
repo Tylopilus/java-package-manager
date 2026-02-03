@@ -31,7 +31,7 @@ public class RemoveCommand implements Callable<Integer> {
             String keyToRemove = null;
             String groupId = null;
 
-            for (var key : config.getDependencies().keySet()) {
+            for (var key : config.dependencies().keySet()) {
                 var parts = key.split(":");
                 if (parts.length == 2) {
                     if (parts[1].equals(artifact) || key.equals(artifact)) {
@@ -48,7 +48,7 @@ public class RemoveCommand implements Callable<Integer> {
             }
 
             // Remove from config
-            var version = config.getDependencies().get(keyToRemove);
+            var version = config.dependencies().get(keyToRemove);
             config.removeDependency(artifact);
             ConfigParser.save(config, configFile);
 

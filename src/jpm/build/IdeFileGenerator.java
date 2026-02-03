@@ -34,7 +34,7 @@ public class IdeFileGenerator {
     public static void generateProjectFile(File projectDir, JpmConfig config) throws IOException {
         File projectFile = new File(projectDir, ".project");
 
-        String projectName = config.getPackage().getName();
+        String projectName = config.package_().name();
         if (projectName == null || projectName.isEmpty()) {
             projectName = projectDir.getName();
         }
@@ -74,7 +74,7 @@ public class IdeFileGenerator {
         xml.append("\t<classpathentry kind=\"output\" path=\"target/classes\"/>\n");
 
         // JRE container
-        String javaVersion = config.getPackage().getJavaVersion();
+        String javaVersion = config.package_().javaVersion();
         if (javaVersion != null && !javaVersion.isEmpty()) {
             xml.append("\t<classpathentry kind=\"con\" path=\"org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-").append(javaVersion).append("\"/>\n");
         } else {

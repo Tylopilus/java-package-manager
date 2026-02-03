@@ -13,7 +13,7 @@ import picocli.CommandLine.Command;
 @Command(
     name = "jpm",
     mixinStandardHelpOptions = true,
-    version = "jpm 0.1.0",
+    version = JpmVersion.CURRENT,
     description = "Java Package Manager - Cargo for Java",
     subcommands = {
         NewCommand.class,
@@ -27,13 +27,16 @@ import picocli.CommandLine.Command;
 )
 public class Main implements Runnable {
     public static void main(String[] args) {
+        // Check Java version before starting
+        JpmVersion.checkJavaVersion();
+        
         int exitCode = new CommandLine(new Main()).execute(args);
         System.exit(exitCode);
     }
 
     @Override
     public void run() {
-        System.out.println("jpm - Java Package Manager");
+        System.out.println(JpmVersion.getDisplayVersion());
         System.out.println("Use 'jpm --help' for available commands");
     }
 }

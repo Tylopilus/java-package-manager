@@ -1,6 +1,8 @@
 # JPM - Java Package Manager
 
-A Cargo-inspired package manager for Java with direct Maven Central integration. Written in Java, for Java developers.
+A Cargo-inspired package manager for Java with direct Maven Central integration. Written in modern Java 21+, for Java developers.
+
+**Version:** 0.2.0-java21 | **Requires:** Java 21 or later
 
 ## Features
 
@@ -12,18 +14,27 @@ A Cargo-inspired package manager for Java with direct Maven Central integration.
 - **Lockfile Support** - `jpm.lock` for fast, reproducible builds
 - **Zero External Runtime Dependencies** - Just JDK + bootstrap libraries
 - **Self-Hosting** - jpm builds itself
+- **Modern Java 21+** - Uses records, virtual threads, and pattern matching
 
 ## Quick Start
 
 ### Installation
 
+**Prerequisites:** Java 21 or later required
+
 ```bash
+# Verify Java version (must be 21+)
+java -version
+
 # Clone or download jpm
 cd jpm
 ./bootstrap.sh
 
 # Add to your PATH
 export PATH="$HOME/.jpm/bin:$PATH"
+
+# Verify installation
+jpm --version  # Should show: 0.2.0-java21
 ```
 
 ### Create a New Project
@@ -295,12 +306,22 @@ jpm run
 src/jpm/
 ├── Main.java              # CLI entry point
 ├── cli/                   # Commands (new, add, remove, build, run, clean, sync)
-├── config/                # TOML parsing (JpmConfig, ConfigParser)
+├── config/                # TOML parsing (JpmConfig, ConfigParser) - uses Records
 ├── deps/                  # Maven client, POM parser, dependency resolver,
-│                          parent POM resolver, lockfile manager
+│                          parent POM resolver, lockfile manager - uses Virtual Threads
 ├── build/                 # Compiler, runner, classpath builder, classpath generator
 └── utils/                 # File utilities, version comparison
 ```
+
+### Modern Java Features
+
+JPM 0.2.0 is built with modern Java 21+ features:
+
+- **Records** - Immutable data classes for `JpmConfig`, `PomInfo`, and `Lockfile`
+- **Virtual Threads** - Concurrent artifact downloads using `Executors.newVirtualThreadPerTaskExecutor()`
+- **Pattern Matching Switch** - Modern switch expressions in CLI commands
+- **Compact Constructors** - Defensive copying in record constructors
+- **`--release 21`** - Compiles to Java 21 bytecode for compatibility
 
 ## Differences from Maven/Gradle
 
@@ -317,8 +338,15 @@ src/jpm/
 
 - **Maven Central only** - Cannot use other repositories
 - **Single-module projects** - No workspace support
-- **Java 21+** - Requires modern JDK
+- **Java 21+ Required** - JPM requires Java 21 or later (uses virtual threads, records, pattern matching)
 - **Main.java** - Entry point must be `Main` class
+
+### System Requirements
+
+- **Java Version:** 21 or later
+- **Operating System:** Linux, macOS, Windows (with bash)
+- **Disk Space:** ~100MB for jpm + dependencies
+- **Network:** Internet connection for Maven Central downloads
 
 ## License
 

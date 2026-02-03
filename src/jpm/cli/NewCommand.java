@@ -31,10 +31,8 @@ public class NewCommand implements Callable<Integer> {
             FileUtils.ensureDirectory(new File(projectDir, "src"));
             
             // Create jpm.toml
-            var config = new JpmConfig();
-            config.getPackage().setName(projectName);
-            config.getPackage().setVersion("0.1.0");
-            config.getPackage().setJavaVersion("21");
+            var pkg = new JpmConfig.PackageConfig(projectName, "0.1.0", "21");
+            var config = new JpmConfig(pkg, new java.util.HashMap<>());
             
             var configFile = new File(projectDir, "jpm.toml");
             ConfigParser.save(config, configFile);
@@ -53,7 +51,7 @@ public class NewCommand implements Callable<Integer> {
             System.out.println("  Created .project");
 
             // Create initial .classpath file
-            var classpathXml = generateClasspath(config.getPackage().getJavaVersion());
+            var classpathXml = generateClasspath(config.package_().javaVersion());
             var classpathFile = new File(projectDir, ".classpath");
             FileUtils.writeFile(classpathFile, classpathXml);
             System.out.println("  Created .classpath");

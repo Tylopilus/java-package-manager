@@ -1,6 +1,7 @@
 #!/bin/bash
 # Bootstrap script for jpm
 # This script builds jpm from scratch without jpm existing yet
+# Compiles with Java 21+ features targeting Java 21 bytecode
 
 set -e
 
@@ -60,7 +61,7 @@ if [ ! -f "$PROJECT_ROOT/jpm.toml" ]; then
     cat > "$PROJECT_ROOT/jpm.toml" << 'EOF'
 [package]
 name = "jpm"
-version = "0.1.0"
+version = "0.2.0-java21"
 java-version = "21"
 
 [dependencies]
@@ -69,175 +70,31 @@ java-version = "21"
 EOF
 fi
 
-# Check for Java
+# Check for Java and verify version
 echo "  -> Checking Java version..."
 if ! command -v javac &> /dev/null; then
     echo "Error: javac not found. Please install JDK 21 or later."
     exit 1
 fi
 
-JAVA_VERSION=$(java -version 2>&1 | head -n 1 | cut -d'"' -f2)
-echo "     Found Java ${JAVA_VERSION}"
+# Extract major version number (e.g., "21.0.2" -> 21)
+JAVA_VERSION=$(java -version 2>&1 | grep -oP 'version "\K[^"]+' | cut -d'.' -f1)
+if [[ -z "$JAVA_VERSION" ]] || [[ "$JAVA_VERSION" -lt 21 ]]; then
+    echo "Error: Java 21+ required (found Java ${JAVA_VERSION:-unknown})"
+    echo "Please install JDK 21 or later to use JPM."
+    exit 1
+fi
+
+echo "     Found Java ${JAVA_VERSION} ✓"
 
 # Find all Java source files
 echo "  -> Finding source files..."
 SOURCE_FILES=$(find "$PROJECT_ROOT/src" -name "*.java" 2>/dev/null || true)
 
 if [ -z "$SOURCE_FILES" ]; then
-    echo "  -> No source files found yet. Creating stub Main.java..."
-    
-    # Create stub Main.java for initial compilation
-    cat > "$PROJECT_ROOT/src/jpm/Main.java" << 'EOF'
-package jpm;
-
-import jpm.cli.NewCommand;
-import jpm.cli.AddCommand;
-import jpm.cli.RemoveCommand;
-import jpm.cli.BuildCommand;
-import jpm.cli.RunCommand;
-import jpm.cli.CleanCommand;
-import picocli.CommandLine;
-import picocli.CommandLine.Command;
-
-@Command(
-    name = "jpm",
-    mixinStandardHelpOptions = true,
-    version = "jpm 0.1.0",
-    description = "Java Package Manager - Cargo for Java",
-    subcommands = {
-        NewCommand.class,
-        AddCommand.class,
-        RemoveCommand.class,
-        BuildCommand.class,
-        RunCommand.class,
-        CleanCommand.class
-    }
-)
-public class Main implements Runnable {
-    public static void main(String[] args) {
-        int exitCode = new CommandLine(new Main()).execute(args);
-        System.exit(exitCode);
-    }
-
-    @Override
-    public void run() {
-        System.out.println("jpm - Java Package Manager");
-        System.out.println("Use 'jpm --help' for available commands");
-    }
-}
-EOF
-
-    # Create stub command files
-    cat > "$PROJECT_ROOT/src/jpm/cli/NewCommand.java" << 'EOF'
-package jpm.cli;
-
-import picocli.CommandLine.Command;
-import picocli.CommandLine.Parameters;
-import java.util.concurrent.Callable;
-
-@Command(name = "new", description = "Create a new Java project")
-public class NewCommand implements Callable<Integer> {
-    @Parameters(index = "0", description = "Project name")
-    private String projectName;
-
-    @Override
-    public Integer call() {
-        System.out.println("Creating new project: " + projectName);
-        return 0;
-    }
-}
-EOF
-
-    cat > "$PROJECT_ROOT/src/jpm/cli/AddCommand.java" << 'EOF'
-package jpm.cli;
-
-import picocli.CommandLine.Command;
-import picocli.CommandLine.Parameters;
-import java.util.concurrent.Callable;
-
-@Command(name = "add", description = "Add a dependency")
-public class AddCommand implements Callable<Integer> {
-    @Parameters(index = "0", description = "Dependency (group:artifact:version)")
-    private String dependency;
-
-    @Override
-    public Integer call() {
-        System.out.println("Adding dependency: " + dependency);
-        return 0;
-    }
-}
-EOF
-
-    cat > "$PROJECT_ROOT/src/jpm/cli/RemoveCommand.java" << 'EOF'
-package jpm.cli;
-
-import picocli.CommandLine.Command;
-import picocli.CommandLine.Parameters;
-import java.util.concurrent.Callable;
-
-@Command(name = "remove", description = "Remove a dependency")
-public class RemoveCommand implements Callable<Integer> {
-    @Parameters(index = "0", description = "Artifact name")
-    private String artifact;
-
-    @Override
-    public Integer call() {
-        System.out.println("Removing dependency: " + artifact);
-        return 0;
-    }
-}
-EOF
-
-    cat > "$PROJECT_ROOT/src/jpm/cli/BuildCommand.java" << 'EOF'
-package jpm.cli;
-
-import picocli.CommandLine.Command;
-import java.util.concurrent.Callable;
-
-@Command(name = "build", description = "Build the project")
-public class BuildCommand implements Callable<Integer> {
-    @Override
-    public Integer call() {
-        System.out.println("Building project...");
-        return 0;
-    }
-}
-EOF
-
-    cat > "$PROJECT_ROOT/src/jpm/cli/RunCommand.java" << 'EOF'
-package jpm.cli;
-
-import picocli.CommandLine.Command;
-import java.util.concurrent.Callable;
-
-@Command(name = "run", description = "Build and run the project")
-public class RunCommand implements Callable<Integer> {
-    @Override
-    public Integer call() {
-        System.out.println("Building and running project...");
-        return 0;
-    }
-}
-EOF
-
-    cat > "$PROJECT_ROOT/src/jpm/cli/CleanCommand.java" << 'EOF'
-package jpm.cli;
-
-import picocli.CommandLine.Command;
-import java.util.concurrent.Callable;
-
-@Command(name = "clean", description = "Clean build artifacts")
-public class CleanCommand implements Callable<Integer> {
-    @Override
-    public Integer call() {
-        System.out.println("Cleaning project...");
-        return 0;
-    }
-}
-EOF
-
-    # Re-scan for source files
-    SOURCE_FILES=$(find "$PROJECT_ROOT/src" -name "*.java")
+    echo "  -> No source files found. Cannot bootstrap without source code."
+    echo "     Please ensure the jpm source files are present in $PROJECT_ROOT/src"
+    exit 1
 fi
 
 # Compile
@@ -248,12 +105,22 @@ mkdir -p "$TARGET_DIR"
 # Build classpath
 CLASSPATH="$LIB_DIR/$PICOLI_JAR:$LIB_DIR/$TOML4J_JAR:$LIB_DIR/$GSON_JAR"
 
-# Compile all Java files
-javac -cp "$CLASSPATH" -d "$TARGET_DIR" $SOURCE_FILES
+# Compile all Java files with Java 21 bytecode target
+# Using --release 21 ensures Java 21 API compatibility and bytecode version
+javac --release 21 -cp "$CLASSPATH" -d "$TARGET_DIR" $SOURCE_FILES
 
 if [ $? -ne 0 ]; then
     echo "Error: Compilation failed"
     exit 1
+fi
+
+# Verify bytecode version (should be 65 = Java 21)
+echo "  -> Verifying Java 21 bytecode..."
+BYTECODE_VERSION=$(javap -verbose "$TARGET_DIR/jpm/Main.class" 2>/dev/null | grep "major version" | awk '{print $3}')
+if [ "$BYTECODE_VERSION" = "65" ]; then
+    echo "     Verified Java 21 bytecode (major version 65) ✓"
+else
+    echo "     Warning: Unexpected bytecode version ${BYTECODE_VERSION}"
 fi
 
 # Create JAR
@@ -281,6 +148,9 @@ chmod +x "$BIN_DIR/jpm"
 
 echo ""
 echo "==> Bootstrap complete!"
+echo ""
+echo "JPM version: 0.2.0-java21"
+echo "Java version required: 21+"
 echo ""
 echo "Add jpm to your PATH:"
 echo "  export PATH=\"\$HOME/.jpm/bin:\$PATH\""

@@ -123,7 +123,7 @@ public class DependencyResolver {
         
         // Perform full resolution
         System.out.println("Resolving dependencies...");
-        var deps = resolveAll(config.getDependencies());
+        var deps = resolveAll(config.dependencies());
         
         // Save to lockfile
         try {
