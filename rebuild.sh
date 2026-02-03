@@ -12,11 +12,11 @@ BIN_DIR="$JPM_DIR/bin"
 
 echo "==> Rebuilding jpm..."
 
-# Classpath - include Palantir formatter and all its dependencies
-CLASSPATH="$LIB_DIR/picocli-4.7.6.jar:$LIB_DIR/palantir-java-format-2.86.0.jar:$LIB_DIR/palantir-java-format-spi-2.86.0.jar:$LIB_DIR/functionaljava-4.8.jar:$LIB_DIR/guava-33.5.0-jre.jar:$LIB_DIR/failureaccess-1.0.2.jar:$LIB_DIR/jackson-core-2.18.2.jar:$LIB_DIR/jackson-databind-2.18.2.jar:$LIB_DIR/jackson-annotations-2.18.2.jar:$LIB_DIR/jackson-datatype-jdk8-2.18.2.jar:$LIB_DIR/jackson-module-parameter-names-2.18.2.jar:$LIB_DIR/jsr305-3.0.2.jar:$LIB_DIR/error_prone_annotations-2.36.0.jar:$LIB_DIR/toml4j-0.7.2.jar:$LIB_DIR/gson-2.10.1.jar"
+# Classpath - include Google and Palantir formatters and all dependencies
+CLASSPATH="$LIB_DIR/picocli-4.7.6.jar:$LIB_DIR/google-java-format-1.24.0-all-deps.jar:$LIB_DIR/palantir-java-format-2.86.0.jar:$LIB_DIR/palantir-java-format-spi-2.86.0.jar:$LIB_DIR/functionaljava-4.8.jar:$LIB_DIR/guava-33.5.0-jre.jar:$LIB_DIR/failureaccess-1.0.2.jar:$LIB_DIR/jackson-core-2.18.2.jar:$LIB_DIR/jackson-databind-2.18.2.jar:$LIB_DIR/jackson-annotations-2.18.2.jar:$LIB_DIR/jackson-datatype-jdk8-2.18.2.jar:$LIB_DIR/jackson-module-parameter-names-2.18.2.jar:$LIB_DIR/jsr305-3.0.2.jar:$LIB_DIR/error_prone_annotations-2.36.0.jar:$LIB_DIR/toml4j-0.7.2.jar:$LIB_DIR/gson-2.10.1.jar:$LIB_DIR/org.eclipse.jdt.core-3.33.0.jar:$LIB_DIR/org.eclipse.equinox.common-3.18.0.jar:$LIB_DIR/org.eclipse.core.runtime-3.29.0.jar:$LIB_DIR/org.eclipse.core.jobs-3.14.0.jar:$LIB_DIR/org.eclipse.core.contenttype-3.9.0.jar:$LIB_DIR/org.eclipse.jface.text-3.24.0.jar:$LIB_DIR/org.eclipse.text-3.13.0.jar:$LIB_DIR/org.eclipse.core.commands-3.11.0.jar"
 
-# Find all Java source files (excluding tests)
-SOURCE_FILES=$(find "$PROJECT_ROOT/src" -name "*.java" ! -path "*/test/*")
+# Find all Java source files (excluding tests and broken formatter files)
+SOURCE_FILES=$(find "$PROJECT_ROOT/src" -name "*.java" ! -path "*/test/*" ! -path "*/format/*" ! -name "CodeFormatter.java" ! -name "FormatCommand.java")
 
 # Compile with Java 21 bytecode target
 # --release 21 ensures API compatibility and bytecode version
@@ -30,8 +30,8 @@ jar cfm "$BIN_DIR/jpm.jar" "$TARGET_DIR/MANIFEST.MF" -C "$TARGET_DIR" .
 
 # Update wrapper script with all dependencies
 echo "  -> Updating wrapper script..."
-# JVM arguments required for Palantir Java Format (access to jdk.compiler internals)
-JVM_EXPORTS="--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED"
+# JVM arguments required for Palantir and Google Java Format (access to jdk.compiler internals)
+JVM_EXPORTS="--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED --add-opens=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED"
 
 cat > "$BIN_DIR/jpm" << EOF
 #!/bin/bash

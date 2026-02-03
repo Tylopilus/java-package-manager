@@ -6,6 +6,7 @@ import java.util.concurrent.Callable;
 import jpm.config.ConfigParser;
 import jpm.config.FmtConfig;
 import jpm.config.JpmConfig;
+import jpm.config.ProjectPaths;
 import jpm.utils.FileUtils;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
@@ -28,40 +29,40 @@ public class NewCommand implements Callable<Integer> {
       System.out.println("Creating new Java project '" + projectName + "'");
 
       // Create directories
-      FileUtils.ensureDirectory(new File(projectDir, "src"));
+      FileUtils.ensureDirectory(new File(projectDir, ProjectPaths.SRC_DIR));
 
       // Create jpm.toml
       var pkg = new JpmConfig.PackageConfig(projectName, "0.1.0", "21");
       var config =
           new JpmConfig(pkg, new java.util.HashMap<>(), new java.util.HashMap<>(), new FmtConfig());
 
-      var configFile = new File(projectDir, "jpm.toml");
+      var configFile = new File(projectDir, ProjectPaths.CONFIG_FILE);
       ConfigParser.save(config, configFile);
-      System.out.println("  Created jpm.toml");
+      System.out.println("  Created " + ProjectPaths.CONFIG_FILE);
 
       // Create Main.java template
       var mainClass = generateMainClass(projectName);
-      var mainFile = new File(projectDir, "src/Main.java");
+      var mainFile = new File(projectDir, ProjectPaths.SRC_DIR + "/Main.java");
       FileUtils.writeFile(mainFile, mainClass);
-      System.out.println("  Created src/Main.java");
+      System.out.println("  Created " + ProjectPaths.SRC_DIR + "/Main.java");
 
       // Create .project file (required for IDE integration)
       var projectXml = generateProjectFile(projectName);
-      var projectFile = new File(projectDir, ".project");
+      var projectFile = new File(projectDir, ProjectPaths.DOT_PROJECT);
       FileUtils.writeFile(projectFile, projectXml);
-      System.out.println("  Created .project");
+      System.out.println("  Created " + ProjectPaths.DOT_PROJECT);
 
       // Create initial .classpath file
       var classpathXml = generateClasspath(config.package_().javaVersion());
-      var classpathFile = new File(projectDir, ".classpath");
+      var classpathFile = new File(projectDir, ProjectPaths.DOT_CLASSPATH);
       FileUtils.writeFile(classpathFile, classpathXml);
-      System.out.println("  Created .classpath");
+      System.out.println("  Created " + ProjectPaths.DOT_CLASSPATH);
 
       // Create .gitignore
       var gitignore = generateGitignore();
-      var gitignoreFile = new File(projectDir, ".gitignore");
+      var gitignoreFile = new File(projectDir, ProjectPaths.DOT_GITIGNORE);
       FileUtils.writeFile(gitignoreFile, gitignore);
-      System.out.println("  Created .gitignore");
+      System.out.println("  Created " + ProjectPaths.DOT_GITIGNORE);
 
       System.out.println("\nProject '" + projectName + "' created successfully!");
       System.out.println("  cd " + projectName);

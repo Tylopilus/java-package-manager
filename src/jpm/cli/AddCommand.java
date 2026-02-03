@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import jpm.build.ClasspathGenerator;
 import jpm.config.ConfigParser;
+import jpm.config.ProjectPaths;
 import jpm.deps.DependencyResolver;
 import jpm.deps.MavenSearchClient;
 import jpm.utils.FileUtils;
@@ -46,9 +47,9 @@ public class AddCommand implements Callable<Integer> {
   public Integer call() {
     try {
       // Check for jpm.toml
-      var configFile = new File("jpm.toml");
+      var configFile = new File(ProjectPaths.CONFIG_FILE);
       if (!configFile.exists()) {
-        System.err.println("Error: No jpm.toml found. Run 'jpm new <name>' first.");
+        System.err.println("Error: No " + ProjectPaths.CONFIG_FILE + " found. Run 'jpm new <name>' first.");
         return 1;
       }
 
@@ -106,13 +107,13 @@ public class AddCommand implements Callable<Integer> {
 
       // Save config
       ConfigParser.save(config, configFile);
-      System.out.println("\nAdded " + depsToAdd.size() + " dependencies to jpm.toml");
+      System.out.println("\nAdded " + depsToAdd.size() + " dependencies to " + ProjectPaths.CONFIG_FILE);
       System.out.println("Total resolved: " + totalResolved + " artifacts");
 
       // Ensure .project file exists
-      var projectFile = new File(".project");
+      var projectFile = new File(ProjectPaths.DOT_PROJECT);
       if (!projectFile.exists()) {
-        System.out.println("\nCreating .project file...");
+        System.out.println("\nCreating " + ProjectPaths.DOT_PROJECT + " file...");
         var projectXml = generateProjectFile(config.package_().name());
         FileUtils.writeFile(projectFile, projectXml);
       }
@@ -121,13 +122,12 @@ public class AddCommand implements Callable<Integer> {
       System.out.println("\nSyncing IDE configuration...");
       var generator = new ClasspathGenerator();
       generator.generateClasspath(config, new File("."));
-      System.out.println("Generated .classpath file");
+      System.out.println("Generated " + ProjectPaths.DOT_CLASSPATH + " file");
 
       return 0;
 
     } catch (Exception e) {
       System.err.println("Error: " + e.getMessage());
-      e.printStackTrace();
       return 1;
     }
   }
@@ -216,7 +216,7 @@ public class AddCommand implements Callable<Integer> {
     var ga = groupId + ":" + artifactId;
 
     // Check if already exists in config
-    var configFile = new File("jpm.toml");
+    var configFile = new File(ProjectPaths.CONFIG_FILE);
     if (configFile.exists()) {
       try {
         var config = ConfigParser.loadOrCreate(configFile);

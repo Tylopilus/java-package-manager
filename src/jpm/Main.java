@@ -3,7 +3,6 @@ package jpm;
 import jpm.cli.AddCommand;
 import jpm.cli.BuildCommand;
 import jpm.cli.CleanCommand;
-import jpm.cli.FormatCommand;
 import jpm.cli.NewCommand;
 import jpm.cli.RemoveCommand;
 import jpm.cli.RunCommand;
@@ -24,7 +23,7 @@ import picocli.CommandLine.Command;
       BuildCommand.class,
       RunCommand.class,
       TestCommand.class,
-      FormatCommand.class,
+      // FormatCommand.class, // TODO: re-enable after formatter fix
       CleanCommand.class,
       SyncCommand.class
     })
