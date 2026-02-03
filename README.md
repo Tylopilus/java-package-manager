@@ -14,7 +14,7 @@ A Cargo-inspired package manager for Java with direct Maven Central integration.
 - **Lockfile Support** - `jpm.lock` for fast, reproducible builds
 - **Integrated Testing** - `jpm test` with JUnit 5 and CI-ready XML reports
 - **Build Profiles** - dev, release, and test profiles with different optimization levels
-- **Code Formatting** - Palantir Java Format integration with CI check mode
+- **Code Formatting** - Eclipse JDT Core formatter with Rust-like style (100 char lines, grouped imports)
 - **Zero External Runtime Dependencies** - Just JDK + bootstrap libraries
 - **Self-Hosting** - jpm builds itself
 - **Modern Java 21+** - Uses records, virtual threads, and pattern matching
@@ -104,32 +104,46 @@ class MyTest {
 
 ### Code Formatting
 
-Format your code with Palantir Java Format (2.86.0):
+Format your code with Eclipse JDT Core formatter, featuring Rust-like defaults:
 
 ```bash
-jpm fmt                # Format all Java files in src/
+jpm fmt                # Format all Java files in src/ (default: Eclipse formatter)
 jpm fmt --check        # Check formatting (CI mode - fails if unformatted)
 jpm fmt src/Main.java  # Format specific file
 jpm fmt --no-organize-imports  # Skip import organization
 ```
 
+**Rust-like Formatting Style:**
+- **100 character line width** (rustfmt default, with overflow for long literals)
+- **4 spaces indentation** (no tabs)
+- **Opening braces on same line** (K&R style)
+- **Spaces around binary operators** (e.g., `a + b` not `a+b`)
+- **Trailing commas in multi-line** constructs
+- **Grouped imports** (java.* → external → project, separated by blank lines)
+
 **Features:**
-- **Format code**: Applies Palantir Java Format style (120 char line length)
-- **Organize imports**: Removes unused imports and sorts them (enabled by default)
+- **Format code**: Applies Rust-like Eclipse formatter style
+- **Organize imports**: Groups and sorts imports Rust-style (enabled by default)
 - **Check mode**: Returns exit code 1 if files need formatting (for CI)
 - **Skip patterns**: Exclude files using glob patterns
+- **Multiple formatters**: Supports Eclipse (default), Palantir, and Google Java Format
 
 **Configuration (jpm.toml):**
 
 ```toml
 [fmt]
-organize-imports = true                              # Enable/disable import organization
-skip-patterns = ["**/target/**", "**/generated/**"]    # Files to exclude from formatting
+formatter = "eclipse"         # Formatter: eclipse (default), palantir, or google
+line-length = 100            # Rust-style 100 char lines (default)
+organize-imports = true      # Enable/disable import organization
+skip-patterns = ["**/target/**", "**/generated/**"]  # Files to exclude
 ```
 
 **CI Integration:** Use `jpm fmt --check` in pre-commit hooks or CI pipelines. It returns exit code 1 if any files need formatting.
 
-**Pluggable Architecture:** The formatter uses a pluggable interface (`jpm.build.format.Formatter`), making it easy to add alternative formatters (Eclipse, IntelliJ, Google Java Format, etc.) in the future.
+**Pluggable Architecture:** The formatter uses a pluggable interface (`jpm.build.format.Formatter`). Available formatters:
+- **Eclipse** (default): Rust-like style, fully compatible with all Java versions
+- **Palantir**: Alternative opinionated style, all Java versions
+- **Google**: Google's strict style, has compatibility issues with Java 25+
 
 ## Commands
 
@@ -149,10 +163,11 @@ skip-patterns = ["**/target/**", "**/generated/**"]    # Files to exclude from f
 | `jpm test`              | Run all JUnit 5 tests in src/test/java/   | `jpm test`                                  |
 | `jpm test --filter <pattern>` | Run tests matching pattern         | `jpm test --filter UserTest`          |
 | `jpm test --no-parallel` | Disable parallel test execution          | `jpm test --no-parallel`              |
-| `jpm fmt`               | Format Java code with Palantir formatter | `jpm fmt`                                 |
+| `jpm fmt`               | Format Java code (Eclipse, Rust-like style) | `jpm fmt`                            |
 | `jpm fmt --check`       | Check formatting (CI mode)              | `jpm fmt --check`                         |
 | `jpm fmt --organize-imports` | Format with import organization    | `jpm fmt --organize-imports`              |
 | `jpm fmt --no-organize-imports` | Format without import organization | `jpm fmt --no-organize-imports`      |
+| `jpm fmt --formatter <name>` | Use specific formatter (eclipse/palantir/google) | `jpm fmt --formatter palantir`    |
 | `jpm clean`             | Delete target/ directory                  | `jpm clean`                                 |
 | `jpm sync`              | Sync IDE configuration (`.classpath`, `.project`) | `jpm sync`                          |
 

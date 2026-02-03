@@ -65,6 +65,16 @@ if [ ! -f "$LIB_DIR/$JUNIT_PLATFORM_JAR" ]; then
     curl -sL "$JUNIT_PLATFORM_URL" -o "$LIB_DIR/$JUNIT_PLATFORM_JAR" || echo "  Warning: Failed to download JUnit Platform"
 fi
 
+# Download Google Java Format (for code formatting alternative)
+GOOGLE_FORMAT_VERSION="1.24.0"
+GOOGLE_FORMAT_JAR="google-java-format-${GOOGLE_FORMAT_VERSION}-all-deps.jar"
+GOOGLE_FORMAT_URL="https://repo1.maven.org/maven2/com/google/googlejavaformat/google-java-format/${GOOGLE_FORMAT_VERSION}/${GOOGLE_FORMAT_JAR}"
+
+if [ ! -f "$LIB_DIR/$GOOGLE_FORMAT_JAR" ]; then
+    echo "  -> Downloading google-java-format ${GOOGLE_FORMAT_VERSION}..."
+    curl -sL "$GOOGLE_FORMAT_URL" -o "$LIB_DIR/$GOOGLE_FORMAT_JAR" || echo "  Warning: Failed to download Google formatter"
+fi
+
 # Download Palantir Java Format (for code formatting)
 PALANTIR_VERSION="2.86.0"
 PALANTIR_JAR="palantir-java-format-${PALANTIR_VERSION}.jar"
@@ -182,6 +192,86 @@ if [ ! -f "$LIB_DIR/$ERROR_PRONE_JAR" ]; then
     curl -sL "$ERROR_PRONE_URL" -o "$LIB_DIR/$ERROR_PRONE_JAR" || echo "  Warning: Failed to download error_prone_annotations"
 fi
 
+# Download Eclipse JDT Core (for code formatting)
+ECLIPSE_VERSION="3.33.0"
+ECLIPSE_JAR="org.eclipse.jdt.core-${ECLIPSE_VERSION}.jar"
+ECLIPSE_URL="https://repo1.maven.org/maven2/org/eclipse/jdt/org.eclipse.jdt.core/${ECLIPSE_VERSION}/${ECLIPSE_JAR}"
+
+if [ ! -f "$LIB_DIR/$ECLIPSE_JAR" ]; then
+    echo "  -> Downloading Eclipse JDT Core ${ECLIPSE_VERSION}..."
+    curl -sL "$ECLIPSE_URL" -o "$LIB_DIR/$ECLIPSE_JAR" || echo "  Warning: Failed to download Eclipse JDT Core"
+fi
+
+# Download Eclipse Equinox Common (Eclipse JDT transitive dependency)
+EQUINOX_COMMON_VERSION="3.18.0"
+EQUINOX_COMMON_JAR="org.eclipse.equinox.common-${EQUINOX_COMMON_VERSION}.jar"
+EQUINOX_COMMON_URL="https://repo1.maven.org/maven2/org/eclipse/platform/org.eclipse.equinox.common/${EQUINOX_COMMON_VERSION}/${EQUINOX_COMMON_JAR}"
+
+if [ ! -f "$LIB_DIR/$EQUINOX_COMMON_JAR" ]; then
+    echo "  -> Downloading Eclipse Equinox Common ${EQUINOX_COMMON_VERSION}..."
+    curl -sL "$EQUINOX_COMMON_URL" -o "$LIB_DIR/$EQUINOX_COMMON_JAR" || echo "  Warning: Failed to download Eclipse Equinox Common"
+fi
+
+# Download Eclipse Core Runtime (Eclipse JDT transitive dependency)
+CORE_RUNTIME_VERSION="3.29.0"
+CORE_RUNTIME_JAR="org.eclipse.core.runtime-${CORE_RUNTIME_VERSION}.jar"
+CORE_RUNTIME_URL="https://repo1.maven.org/maven2/org/eclipse/platform/org.eclipse.core.runtime/${CORE_RUNTIME_VERSION}/${CORE_RUNTIME_JAR}"
+
+if [ ! -f "$LIB_DIR/$CORE_RUNTIME_JAR" ]; then
+    echo "  -> Downloading Eclipse Core Runtime ${CORE_RUNTIME_VERSION}..."
+    curl -sL "$CORE_RUNTIME_URL" -o "$LIB_DIR/$CORE_RUNTIME_JAR" || echo "  Warning: Failed to download Eclipse Core Runtime"
+fi
+
+# Download Eclipse Core Jobs (Eclipse transitive dependency)
+CORE_JOBS_VERSION="3.14.0"
+CORE_JOBS_JAR="org.eclipse.core.jobs-${CORE_JOBS_VERSION}.jar"
+CORE_JOBS_URL="https://repo1.maven.org/maven2/org/eclipse/platform/org.eclipse.core.jobs/${CORE_JOBS_VERSION}/${CORE_JOBS_JAR}"
+
+if [ ! -f "$LIB_DIR/$CORE_JOBS_JAR" ]; then
+    echo "  -> Downloading Eclipse Core Jobs ${CORE_JOBS_VERSION}..."
+    curl -sL "$CORE_JOBS_URL" -o "$LIB_DIR/$CORE_JOBS_JAR" || echo "  Warning: Failed to download Eclipse Core Jobs"
+fi
+
+# Download Eclipse Core Contenttype (Eclipse transitive dependency)
+CORE_CONTENTTYPE_VERSION="3.9.0"
+CORE_CONTENTTYPE_JAR="org.eclipse.core.contenttype-${CORE_CONTENTTYPE_VERSION}.jar"
+CORE_CONTENTTYPE_URL="https://repo1.maven.org/maven2/org/eclipse/platform/org.eclipse.core.contenttype/${CORE_CONTENTTYPE_VERSION}/${CORE_CONTENTTYPE_JAR}"
+
+if [ ! -f "$LIB_DIR/$CORE_CONTENTTYPE_JAR" ]; then
+    echo "  -> Downloading Eclipse Core Contenttype ${CORE_CONTENTTYPE_VERSION}..."
+    curl -sL "$CORE_CONTENTTYPE_URL" -o "$LIB_DIR/$CORE_CONTENTTYPE_JAR" || echo "  Warning: Failed to download Eclipse Core Contenttype"
+fi
+
+# Download Eclipse Text (required for TextEdit)
+TEXT_VERSION="3.13.0"
+TEXT_JAR="org.eclipse.text-${TEXT_VERSION}.jar"
+TEXT_URL="https://repo1.maven.org/maven2/org/eclipse/platform/org.eclipse.text/${TEXT_VERSION}/${TEXT_JAR}"
+
+if [ ! -f "$LIB_DIR/$TEXT_JAR" ]; then
+    echo "  -> Downloading Eclipse Text ${TEXT_VERSION}..."
+    curl -sL "$TEXT_URL" -o "$LIB_DIR/$TEXT_JAR" || echo "  Warning: Failed to download Eclipse Text"
+fi
+
+# Download Eclipse JFace Text (required for Document and IDocument)
+JFACE_TEXT_VERSION="3.24.0"
+JFACE_TEXT_JAR="org.eclipse.jface.text-${JFACE_TEXT_VERSION}.jar"
+JFACE_TEXT_URL="https://repo1.maven.org/maven2/org/eclipse/platform/org.eclipse.jface.text/${JFACE_TEXT_VERSION}/${JFACE_TEXT_JAR}"
+
+if [ ! -f "$LIB_DIR/$JFACE_TEXT_JAR" ]; then
+    echo "  -> Downloading Eclipse JFace Text ${JFACE_TEXT_VERSION}..."
+    curl -sL "$JFACE_TEXT_URL" -o "$LIB_DIR/$JFACE_TEXT_JAR" || echo "  Warning: Failed to download Eclipse JFace Text"
+fi
+
+# Download Eclipse Core Commands (transitive dependency of JFace Text)
+CORE_COMMANDS_VERSION="3.11.0"
+CORE_COMMANDS_JAR="org.eclipse.core.commands-${CORE_COMMANDS_VERSION}.jar"
+CORE_COMMANDS_URL="https://repo1.maven.org/maven2/org/eclipse/platform/org.eclipse.core.commands/${CORE_COMMANDS_VERSION}/${CORE_COMMANDS_JAR}"
+
+if [ ! -f "$LIB_DIR/$CORE_COMMANDS_JAR" ]; then
+    echo "  -> Downloading Eclipse Core Commands ${CORE_COMMANDS_VERSION}..."
+    curl -sL "$CORE_COMMANDS_URL" -o "$LIB_DIR/$CORE_COMMANDS_JAR" || echo "  Warning: Failed to download Eclipse Core Commands"
+fi
+
 # Create source directories
 echo "  -> Creating project structure..."
 mkdir -p "$PROJECT_ROOT/src/jpm/cli"
@@ -238,7 +328,7 @@ TARGET_DIR="$PROJECT_ROOT/target/classes"
 mkdir -p "$TARGET_DIR"
 
 # Build classpath
-CLASSPATH="$LIB_DIR/$PICOLI_JAR:$LIB_DIR/$PALANTIR_JAR:$LIB_DIR/$PALANTIR_SPI_JAR:$LIB_DIR/$FJ_JAR:$LIB_DIR/$GUAVA_JAR:$LIB_DIR/$FAILUREACCESS_JAR:$LIB_DIR/$JACKSON_CORE_JAR:$LIB_DIR/$JACKSON_DATABIND_JAR:$LIB_DIR/$JACKSON_ANNOTATIONS_JAR:$LIB_DIR/$JACKSON_DATATYPE_JAR:$LIB_DIR/$JACKSON_MODULE_JAR:$LIB_DIR/$JSR305_JAR:$LIB_DIR/$ERROR_PRONE_JAR:$LIB_DIR/$TOML4J_JAR:$LIB_DIR/$GSON_JAR"
+CLASSPATH="$LIB_DIR/$PICOLI_JAR:$LIB_DIR/$GOOGLE_FORMAT_JAR:$LIB_DIR/$PALANTIR_JAR:$LIB_DIR/$PALANTIR_SPI_JAR:$LIB_DIR/$FJ_JAR:$LIB_DIR/$GUAVA_JAR:$LIB_DIR/$FAILUREACCESS_JAR:$LIB_DIR/$JACKSON_CORE_JAR:$LIB_DIR/$JACKSON_DATABIND_JAR:$LIB_DIR/$JACKSON_ANNOTATIONS_JAR:$LIB_DIR/$JACKSON_DATATYPE_JAR:$LIB_DIR/$JACKSON_MODULE_JAR:$LIB_DIR/$JSR305_JAR:$LIB_DIR/$ERROR_PRONE_JAR:$LIB_DIR/$TOML4J_JAR:$LIB_DIR/$GSON_JAR:$LIB_DIR/$ECLIPSE_JAR:$LIB_DIR/$EQUINOX_COMMON_JAR:$LIB_DIR/$CORE_RUNTIME_JAR:$LIB_DIR/$CORE_JOBS_JAR:$LIB_DIR/$CORE_CONTENTTYPE_JAR"
 
 # Compile all Java files with Java 21 bytecode target
 # Using --release 21 ensures Java 21 API compatibility and bytecode version
@@ -266,7 +356,7 @@ JAR_FILE="$BIN_DIR/jpm.jar"
 cat > "$TARGET_DIR/MANIFEST.MF" << EOF
 Manifest-Version: 1.0
 Main-Class: jpm.Main
-Class-Path: $LIB_DIR/$PICOLI_JAR $LIB_DIR/$PALANTIR_JAR $LIB_DIR/$PALANTIR_SPI_JAR $LIB_DIR/$FJ_JAR $LIB_DIR/$GUAVA_JAR $LIB_DIR/$FAILUREACCESS_JAR $LIB_DIR/$JACKSON_CORE_JAR $LIB_DIR/$JACKSON_DATABIND_JAR $LIB_DIR/$JACKSON_ANNOTATIONS_JAR $LIB_DIR/$JACKSON_DATATYPE_JAR $LIB_DIR/$JACKSON_MODULE_JAR $LIB_DIR/$JSR305_JAR $LIB_DIR/$ERROR_PRONE_JAR $LIB_DIR/$TOML4J_JAR $LIB_DIR/$GSON_JAR
+Class-Path: $LIB_DIR/$PICOLI_JAR $LIB_DIR/$GOOGLE_FORMAT_JAR $LIB_DIR/$PALANTIR_JAR $LIB_DIR/$PALANTIR_SPI_JAR $LIB_DIR/$FJ_JAR $LIB_DIR/$GUAVA_JAR $LIB_DIR/$FAILUREACCESS_JAR $LIB_DIR/$JACKSON_CORE_JAR $LIB_DIR/$JACKSON_DATABIND_JAR $LIB_DIR/$JACKSON_ANNOTATIONS_JAR $LIB_DIR/$JACKSON_DATATYPE_JAR $LIB_DIR/$JACKSON_MODULE_JAR $LIB_DIR/$JSR305_JAR $LIB_DIR/$ERROR_PRONE_JAR $LIB_DIR/$TOML4J_JAR $LIB_DIR/$GSON_JAR $LIB_DIR/$ECLIPSE_JAR $LIB_DIR/$EQUINOX_COMMON_JAR $LIB_DIR/$CORE_RUNTIME_JAR $LIB_DIR/$CORE_JOBS_JAR $LIB_DIR/$CORE_CONTENTTYPE_JAR
 EOF
 
 # Package JAR
@@ -276,9 +366,9 @@ jar cfm "$JAR_FILE" "$TARGET_DIR/MANIFEST.MF" -C "$TARGET_DIR" .
 echo "  -> Creating jpm wrapper script..."
 cat > "$BIN_DIR/jpm" << EOF
 #!/bin/bash
-# JVM arguments required for Palantir Java Format (access to jdk.compiler internals)
-JVM_EXPORTS="--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED"
-java \$JVM_EXPORTS -cp "$JAR_FILE:$LIB_DIR/$PICOLI_JAR:$LIB_DIR/$PALANTIR_JAR:$LIB_DIR/$PALANTIR_SPI_JAR:$LIB_DIR/$FJ_JAR:$LIB_DIR/$GUAVA_JAR:$LIB_DIR/$FAILUREACCESS_JAR:$LIB_DIR/$JACKSON_CORE_JAR:$LIB_DIR/$JACKSON_DATABIND_JAR:$LIB_DIR/$JACKSON_ANNOTATIONS_JAR:$LIB_DIR/$JACKSON_DATATYPE_JAR:$LIB_DIR/$JACKSON_MODULE_JAR:$LIB_DIR/$JSR305_JAR:$LIB_DIR/$ERROR_PRONE_JAR:$LIB_DIR/$TOML4J_JAR:$LIB_DIR/$GSON_JAR" jpm.Main "\$@"
+# JVM arguments required for Palantir and Google Java Format (access to jdk.compiler internals)
+JVM_EXPORTS="--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED --add-opens=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED"
+java \$JVM_EXPORTS -cp "$JAR_FILE:$LIB_DIR/$PICOLI_JAR:$LIB_DIR/$GOOGLE_FORMAT_JAR:$LIB_DIR/$PALANTIR_JAR:$LIB_DIR/$PALANTIR_SPI_JAR:$LIB_DIR/$FJ_JAR:$LIB_DIR/$GUAVA_JAR:$LIB_DIR/$FAILUREACCESS_JAR:$LIB_DIR/$JACKSON_CORE_JAR:$LIB_DIR/$JACKSON_DATABIND_JAR:$LIB_DIR/$JACKSON_ANNOTATIONS_JAR:$LIB_DIR/$JACKSON_DATATYPE_JAR:$LIB_DIR/$JACKSON_MODULE_JAR:$LIB_DIR/$JSR305_JAR:$LIB_DIR/$ERROR_PRONE_JAR:$LIB_DIR/$TOML4J_JAR:$LIB_DIR/$GSON_JAR:$LIB_DIR/$ECLIPSE_JAR:$LIB_DIR/$EQUINOX_COMMON_JAR:$LIB_DIR/$CORE_RUNTIME_JAR:$LIB_DIR/$CORE_JOBS_JAR:$LIB_DIR/$CORE_CONTENTTYPE_JAR" jpm.Main "\$@"
 EOF
 
 chmod +x "$BIN_DIR/jpm"

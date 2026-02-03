@@ -65,13 +65,17 @@ import jpm.utils.FileUtils;
 - No wildcard imports (`import java.util.*;` is OK, but not `import static jpm.deps.*;`)
 - Always specify StandardCharsets for encoding operations
 
-### Formatting
+### Formatting (Eclipse JDT - Rust-like Style)
+- **Default formatter**: Eclipse JDT Core (rustfmt-compatible style)
 - **Indentation**: 4 spaces (no tabs)
-- **Line length**: 120 characters max
+- **Line length**: 100 characters max (rustfmt default)
 - **Braces**: Opening brace on same line, closing on new line
 - **No trailing whitespace**
 - **One blank line** between methods
 - **Two blank lines** between classes
+- **Spaces around binary operators** (e.g., `a + b`, not `a+b`)
+- **Trailing commas** in multi-line constructs
+- **Grouped imports**: java.* → external → project (blank lines between groups)
 
 ### Types and Declarations
 ```java

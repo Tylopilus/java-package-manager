@@ -8,13 +8,14 @@ import java.util.ArrayList;
 import java.util.List;
 import jpm.build.format.Formatter;
 import jpm.build.format.FormatterException;
+import jpm.build.format.FormatterFactory;
 import jpm.build.format.PalantirFormatter;
 import jpm.config.FmtConfig;
 import jpm.utils.FileUtils;
 
 /**
  * High-level code formatter orchestrator.
- * Uses a pluggable Formatter implementation for actual formatting.
+ * Uses Palantir Formatter implementation for actual formatting.
  */
 public class CodeFormatter {
 
@@ -26,7 +27,7 @@ public class CodeFormatter {
   }
 
   public CodeFormatter(FmtConfig config) {
-    this(new PalantirFormatter(), config);
+    this(FormatterFactory.create("palantir", config), config);
   }
 
   public CodeFormatter(Formatter formatter, FmtConfig config) {

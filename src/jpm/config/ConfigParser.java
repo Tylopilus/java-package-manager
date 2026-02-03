@@ -73,10 +73,13 @@ public class ConfigParser {
     var organizeImports = fmtToml.getBoolean("organize-imports");
     var skipPatterns = fmtToml.getList("skip-patterns");
 
+    var formatter = fmtToml.getString("formatter");
+
     return new FmtConfig(
         lineLength != null ? lineLength.intValue() : null,
         organizeImports,
-        skipPatterns != null ? skipPatterns.stream().map(Object::toString).toList() : null);
+        skipPatterns != null ? skipPatterns.stream().map(Object::toString).toList() : null,
+        formatter);
   }
 
   /**

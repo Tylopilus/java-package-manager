@@ -10,20 +10,23 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
 /**
- * Format command for Java source code using Palantir Java Format.
+ * Format command for Java source code using Palantir formatter.
  *
  * Features:
  * - Format all Java files in src/ and src/test/java/
+ * - Opinionated formatting (Palantir/Rust style)
  * - Check mode for CI integration (fails if unformatted)
  * - Support for specific file or directory formatting
  * - Respects .gitignore and skip patterns from jpm.toml
+ * - Automatic import organization
  *
  * Configuration is read from jpm.toml [fmt] section:
  *   [fmt]
- *   line-length = 120
+ *   line-length = 120  # Palantir default
  *   organize-imports = true
  *   skip-patterns = ["**&#47;target&#47;**"]
  *
+ * @see jpm.build.format.PalantirFormatter
  */
 @Command(name = "fmt", description = "Format Java source code", mixinStandardHelpOptions = true)
 public class FormatCommand implements Callable<Integer> {
@@ -61,11 +64,20 @@ public class FormatCommand implements Callable<Integer> {
       }
 
       // CLI flags override config
+      Boolean orgImports = null;
       if (organizeImports) {
-        fmtConfig = new FmtConfig(fmtConfig.lineLength(), true, fmtConfig.skipPatterns());
+        orgImports = true;
       } else if (noOrganizeImports) {
-        fmtConfig = new FmtConfig(fmtConfig.lineLength(), false, fmtConfig.skipPatterns());
+        orgImports = false;
       }
+
+      // Create new config, ignoring formatter preference (always Palantir)
+      fmtConfig = new FmtConfig(
+          fmtConfig.lineLength(),
+          orgImports != null ? orgImports : fmtConfig.organizeImports(),
+          fmtConfig.skipPatterns(),
+          "palantir" // Always force Palantir
+      );
 
       var formatter = new CodeFormatter(fmtConfig);
 
