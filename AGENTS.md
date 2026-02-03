@@ -1,5 +1,14 @@
 # AGENTS.md - Guidelines for AI Coding Agents
 
+## Code changing rules
+- always expand to the whole project scope
+- always check for refactoring. Aim for the DRY principle where possible
+- If a change makes no change - push back before implemeting it
+- Question yourself if a change now is good or should it be done elsewhere
+- Always clean up after yourself - don't leave old code behind. If it can be
+  refactored do so.
+- always update the readme if necessary
+- alwyas commit changes using semantic commit messages
 ## Build Commands
 
 ### Development Build
@@ -35,13 +44,6 @@ javac -cp "$CLASSPATH" -d target/classes src/**/*.java
 - Run individual test class: `java -cp <classpath> org.junit.platform.console.ConsoleLauncher -c <TestClass>`
 - Tests should be placed in packages matching the source (e.g., `jpm.deps` tests in `test/jpm/deps`)
 
-## Code changing rules
-- always expand to the whole project scope
-- always check for refactoring. Aim for the DRY principle where possible
-- If a change makes no change - push back before implemeting it
-- Question yourself if a change now is good or should it be done elsewhere
-- Always clean up after yourself - don't leave old code behind. If it can be
-  refactored do so.
 ## Code Style Guidelines
 
 ### Language Version
