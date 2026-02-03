@@ -7,7 +7,9 @@ A Cargo-inspired package manager for Java with direct Maven Central integration.
 - **Simple TOML Configuration** - Clean, readable project manifests
 - **Direct Maven Central** - No wrapper around Maven/Gradle
 - **Automatic Transitive Resolution** - Downloads dependencies and their dependencies
+- **Parent POM Resolution** - Follows Maven parent POMs for correct transitive dependencies
 - **Fast Local Cache** - Dependencies cached in `~/.jpm/cache/`
+- **Lockfile Support** - `jpm.lock` for fast, reproducible builds
 - **Zero External Runtime Dependencies** - Just JDK + bootstrap libraries
 - **Self-Hosting** - jpm builds itself
 
@@ -50,9 +52,11 @@ jpm add --yes guava    # Non-interactive mode, auto-confirm
 ### Build and Run
 
 ```bash
-jpm build    # Compile only
-jpm run      # Build + run
-jpm clean    # Remove target/
+jpm build              # Compile only
+jpm build --force-resolve   # Force dependency re-resolution
+jpm run                # Build + run
+jpm run --force-resolve     # Force dependency re-resolution
+jpm clean              # Remove target/
 ```
 
 ## Commands
@@ -63,7 +67,9 @@ jpm clean    # Remove target/
 | `jpm add <dep>`         | Add dependency with transitive resolution | `jpm add com.google.guava:guava:32.1.3-jre` |
 | `jpm remove <artifact>` | Remove dependency                         | `jpm remove guava`                          |
 | `jpm build`             | Compile src/ → target/classes/            | `jpm build`                                 |
+| `jpm build --force-resolve` | Compile with fresh dependency resolution | `jpm build --force-resolve`          |
 | `jpm run`               | Build + execute Main class                | `jpm run`                                   |
+| `jpm run --force-resolve` | Build + run with fresh resolution      | `jpm run --force-resolve`             |
 | `jpm clean`             | Delete target/ directory                  | `jpm clean`                                 |
 | `jpm sync`              | Sync IDE configuration (`.classpath`, `.project`) | `jpm sync`                          |
 
@@ -143,9 +149,43 @@ In `jpm.toml`, they are stored as:
 
 1. **Parse** `jpm.toml` for direct dependencies
 2. **Download** POM files from Maven Central
-3. **Resolve** transitive dependencies recursively
-4. **Cache** all artifacts in `~/.jpm/cache/`
-5. **Build** classpath from cached JARs
+3. **Follow** parent POMs for inherited properties and versions (up to 10 levels)
+4. **Resolve** transitive dependencies recursively
+5. **Cache** all artifacts in `~/.jpm/cache/`
+6. **Build** classpath from cached JARs
+
+### Lockfile
+
+jpm uses a `jpm.lock` file (similar to Cargo's `Cargo.lock`) for fast, reproducible builds:
+
+- **Automatic Creation**: Generated on first run/build with dependencies
+- **Fast Subsequent Runs**: Lockfile allows skipping full dependency resolution
+- **Auto-Regeneration**: Automatically updated when dependencies change in `jpm.toml`
+- **Version Control**: Commit `jpm.lock` for reproducible builds across environments
+
+```bash
+# First run - creates jpm.lock
+jpm run
+# Output: Resolving dependencies... Resolved 5 dependencies
+
+# Second run - uses lockfile (instant!)
+jpm run
+# Output: Using cached dependencies from jpm.lock
+
+# Force fresh resolution
+jpm run --force-resolve
+```
+
+### Parent POM Resolution
+
+When resolving dependencies, jpm follows Maven parent POM chains to correctly resolve property placeholders (e.g., `${jackson.version.annotations}`):
+
+- Downloads parent POMs recursively (up to 10 levels)
+- Caches parent POMs locally forever
+- Merges properties from parent → child hierarchy
+- Shows timing: "Downloaded 4 parent POMs in 529ms"
+
+This ensures libraries like Jackson and Spring Boot work correctly without manual transitive dependency management.
 
 ### IDE File Generation
 
@@ -187,6 +227,7 @@ When multiple versions of the same artifact are needed:
 my-app/
 ├── .project           # Eclipse project metadata (commit this)
 ├── .classpath         # IDE classpath (auto-generated, in .gitignore)
+├── jpm.lock           # Lockfile for reproducible builds (commit this)
 ├── .gitignore         # Git ignore rules
 ├── jpm.toml           # Project configuration
 ├── src/
@@ -198,6 +239,7 @@ my-app/
 **File Guide:**
 - `.project` - Required for IDE integration, should be committed
 - `.classpath` - Auto-generated from `jpm.toml`, in `.gitignore`
+- `jpm.lock` - Lockfile with exact dependency versions, should be committed
 - `jpm.toml` - Your project configuration, should be committed
 - `target/` - Build output, in `.gitignore`
 
@@ -242,7 +284,8 @@ src/jpm/
 ├── Main.java              # CLI entry point
 ├── cli/                   # Commands (new, add, remove, build, run, clean, sync)
 ├── config/                # TOML parsing (JpmConfig, ConfigParser)
-├── deps/                  # Maven client, POM parser, dependency resolver
+├── deps/                  # Maven client, POM parser, dependency resolver,
+│                          parent POM resolver, lockfile manager
 ├── build/                 # Compiler, runner, classpath builder, classpath generator
 └── utils/                 # File utilities, version comparison
 ```
