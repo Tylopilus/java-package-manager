@@ -178,6 +178,7 @@ public class TestRunner {
           // Create instance and run test
           var instance = createTestInstance(clazz);
           runBeforeEach(clazz, instance);
+          method.setAccessible(true);
           method.invoke(instance);
           runAfterEach(clazz, instance);
 
