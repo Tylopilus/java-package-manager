@@ -1,0 +1,28 @@
+# JPM - Java Package Manager
+# Git Ignore File
+
+# Build output
+target/
+*.jar
+
+# IDE files (generated, not committed - but .project should be!)
+.classpath
+.settings/
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Local env files
+.env
+.env.local
+
+# Lockfile is committed for reproducible builds
+# jpm.lock should be committed to version control
