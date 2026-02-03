@@ -15,23 +15,23 @@ public class ConfigParser {
             return null;
         }
         
-        Toml toml = new Toml().read(configFile);
-        JpmConfig config = new JpmConfig();
+        var toml = new Toml().read(configFile);
+        var config = new JpmConfig();
         
         // Parse package section
-        Toml packageToml = toml.getTable("package");
+        var packageToml = toml.getTable("package");
         if (packageToml != null) {
-            JpmConfig.PackageConfig pkg = config.getPackage();
+            var pkg = config.getPackage();
             pkg.setName(packageToml.getString("name"));
             pkg.setVersion(packageToml.getString("version"));
             pkg.setJavaVersion(packageToml.getString("java-version"));
         }
         
         // Parse dependencies section
-        Toml depsToml = toml.getTable("dependencies");
+        var depsToml = toml.getTable("dependencies");
         if (depsToml != null) {
-            Map<String, String> deps = new HashMap<>();
-            for (Map.Entry<String, Object> entry : depsToml.entrySet()) {
+            var deps = new HashMap<String, String>();
+            for (var entry : depsToml.entrySet()) {
                 String key = stripQuotes(entry.getKey());
                 deps.put(key, entry.getValue().toString());
             }
@@ -42,7 +42,7 @@ public class ConfigParser {
     }
     
     public static void save(JpmConfig config, File configFile) throws IOException {
-        StringBuilder toml = new StringBuilder();
+        var toml = new StringBuilder();
         
         // Package section
         toml.append("[package]\n");
@@ -53,9 +53,9 @@ public class ConfigParser {
         // Dependencies section
         if (!config.getDependencies().isEmpty()) {
             toml.append("\n[dependencies]\n");
-            for (Map.Entry<String, String> entry : config.getDependencies().entrySet()) {
-                String key = entry.getKey();
-                String value = entry.getValue();
+            for (var entry : config.getDependencies().entrySet()) {
+                var key = entry.getKey();
+                var value = entry.getValue();
                 // Keys with special characters need quotes
                 if (key.contains(":") || key.contains(".") || key.contains("-")) {
                     toml.append("\"").append(escape(key)).append("\"");
@@ -83,7 +83,7 @@ public class ConfigParser {
     }
     
     public static JpmConfig loadOrCreate(File configFile) throws IOException {
-        JpmConfig config = load(configFile);
+        var config = load(configFile);
         if (config == null) {
             config = new JpmConfig();
             config.getPackage().setVersion("0.1.0");

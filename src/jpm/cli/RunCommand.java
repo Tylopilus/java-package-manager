@@ -30,35 +30,35 @@ public class RunCommand implements Callable<Integer> {
     public Integer call() {
         try {
             // Check for jpm.toml
-            File configFile = new File("jpm.toml");
+            var configFile = new File("jpm.toml");
             if (!configFile.exists()) {
                 System.err.println("Error: No jpm.toml found. Run 'jpm new <name>' first.");
                 return 1;
             }
 
             // Load config
-            JpmConfig config = ConfigParser.load(configFile);
+            var config = ConfigParser.load(configFile);
 
             System.out.println("Building " + config.getPackage().getName() + " v" + config.getPackage().getVersion());
 
             // Generate IDE files if missing and not disabled
-            File projectDir = new File(".");
+            var projectDir = new File(".");
             if (!noIdeFiles && IdeFileGenerator.shouldGenerateIdeFiles(projectDir)) {
                 // We'll generate .project now, and .classpath after dependency resolution
                 IdeFileGenerator.generateProjectFile(projectDir, config);
             }
 
             // Resolve dependencies
-            String classpath = "";
+            var classpath = "";
             if (!config.getDependencies().isEmpty()) {
-                DependencyResolver resolver = new DependencyResolver();
-                List<DependencyResolver.ResolvedDependency> deps = resolver.resolveWithLockfile(projectDir, config, forceResolve);
+                var resolver = new DependencyResolver();
+                var deps = resolver.resolveWithLockfile(projectDir, config, forceResolve);
                 classpath = ClasspathBuilder.buildClasspath(deps);
                 System.out.println("Resolved " + deps.size() + " dependencies");
             }
 
             // Generate .classpath after dependency resolution if needed
-            boolean classpathExisted = new File(projectDir, ".classpath").exists();
+            var classpathExisted = new File(projectDir, ".classpath").exists();
             if (!noIdeFiles && !classpathExisted) {
                 IdeFileGenerator.generateClasspathFile(projectDir, config, classpath);
                 classpathExisted = true;
@@ -66,7 +66,7 @@ public class RunCommand implements Callable<Integer> {
 
             // Show message if both files were generated
             if (!noIdeFiles) {
-                boolean projectExisted = new File(projectDir, ".project").exists();
+                var projectExisted = new File(projectDir, ".project").exists();
                 if (!projectExisted || !classpathExisted) {
                     System.out.println("Generated IDE configuration files (.project, .classpath)");
                 }
@@ -79,34 +79,34 @@ public class RunCommand implements Callable<Integer> {
             }
 
             if (!noIdeFiles) {
-                boolean projectExisted = new File(projectDir, ".project").exists();
+                var projectExisted = new File(projectDir, ".project").exists();
                 if (!projectExisted) {
                     System.out.println("Generated IDE configuration files (.project, .classpath)");
                 }
             }
 
             // Compile
-            File sourceDir = new File("src");
-            File outputDir = new File("target/classes");
+            var sourceDir = new File("src");
+            var outputDir = new File("target/classes");
             
             if (!sourceDir.exists()) {
                 System.err.println("Error: No src/ directory found");
                 return 1;
             }
             
-            Compiler compiler = new Compiler();
-            Compiler.CompileResult compileResult = compiler.compile(sourceDir, outputDir, classpath);
+            var compiler = new Compiler();
+            var compileResult = compiler.compile(sourceDir, outputDir, classpath);
             
-            if (!compileResult.success) {
-                System.err.println("Build failed with exit code " + compileResult.exitCode);
-                return compileResult.exitCode;
+            if (!compileResult.success()) {
+                System.err.println("Build failed with exit code " + compileResult.exitCode());
+                return compileResult.exitCode();
             }
             
             System.out.println("Running...\n");
             
             // Run
-            Runner runner = new Runner();
-            String mainClass = "Main";
+            var runner = new Runner();
+            var mainClass = "Main";
             
             Runner.RunResult runResult;
             if (args != null && args.length > 0) {
@@ -115,7 +115,7 @@ public class RunCommand implements Callable<Integer> {
                 runResult = runner.run(mainClass, outputDir, classpath);
             }
             
-            return runResult.exitCode;
+            return runResult.exitCode();
             
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());

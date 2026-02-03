@@ -11,21 +11,15 @@ import java.util.stream.Stream;
 
 public class Compiler {
     
-    public static class CompileResult {
-        public final boolean success;
-        public final String output;
-        public final int exitCode;
-        
-        public CompileResult(boolean success, String output, int exitCode) {
-            this.success = success;
-            this.output = output;
-            this.exitCode = exitCode;
-        }
-    }
+    /**
+     * Record representing the result of a compilation operation.
+     * Uses Java 16+ records for concise immutable data classes.
+     */
+    public record CompileResult(boolean success, String output, int exitCode) {}
     
     public CompileResult compile(File sourceDir, File outputDir, String classpath) throws IOException {
         // Find all Java source files
-        List<String> sourceFiles = findSourceFiles(sourceDir);
+        var sourceFiles = findSourceFiles(sourceDir);
         
         if (sourceFiles.isEmpty()) {
             return new CompileResult(false, "No Java source files found in " + sourceDir, 1);
@@ -35,7 +29,7 @@ public class Compiler {
         outputDir.mkdirs();
         
         // Build javac command
-        List<String> command = new ArrayList<>();
+        var command = new ArrayList<String>();
         command.add("javac");
         command.add("-d");
         command.add(outputDir.getAbsolutePath());
@@ -48,14 +42,14 @@ public class Compiler {
         command.addAll(sourceFiles);
         
         // Execute
-        ProcessBuilder pb = new ProcessBuilder(command);
+        var pb = new ProcessBuilder(command);
         pb.inheritIO();
         pb.directory(sourceDir);
         
-        Process process = pb.start();
+        var process = pb.start();
         
         try {
-            int exitCode = process.waitFor();
+            var exitCode = process.waitFor();
             return new CompileResult(exitCode == 0, "", exitCode);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -68,9 +62,9 @@ public class Compiler {
             return new ArrayList<>();
         }
         
-        Path sourcePath = sourceDir.toPath().toAbsolutePath().normalize();
+        var sourcePath = sourceDir.toPath().toAbsolutePath().normalize();
         
-        try (Stream<Path> stream = Files.walk(sourcePath)) {
+        try (var stream = Files.walk(sourcePath)) {
             return stream
                 .filter(Files::isRegularFile)
                 .filter(p -> p.toString().endsWith(".java"))

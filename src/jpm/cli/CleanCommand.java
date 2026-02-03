@@ -12,7 +12,7 @@ public class CleanCommand implements Callable<Integer> {
     @Override
     public Integer call() {
         try {
-            File targetDir = new File("target");
+            var targetDir = new File("target");
             
             if (targetDir.exists()) {
                 System.out.println("Cleaning target/ directory...");

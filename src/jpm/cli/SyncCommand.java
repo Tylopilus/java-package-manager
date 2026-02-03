@@ -15,7 +15,7 @@ public class SyncCommand implements Callable<Integer> {
     @Override
     public Integer call() {
         try {
-            File configFile = new File("jpm.toml");
+            var configFile = new File("jpm.toml");
             if (!configFile.exists()) {
                 System.err.println("Error: No jpm.toml found. Run 'jpm new <name>' first.");
                 return 1;
@@ -24,10 +24,10 @@ public class SyncCommand implements Callable<Integer> {
             System.out.println("Syncing IDE configuration...");
 
             // Load config
-            JpmConfig config = ConfigParser.load(configFile);
+            var config = ConfigParser.load(configFile);
 
             // Generate .classpath file
-            ClasspathGenerator generator = new ClasspathGenerator();
+            var generator = new ClasspathGenerator();
             generator.generateClasspath(config, new File("."));
 
             System.out.println("Generated .classpath file for IDE integration");

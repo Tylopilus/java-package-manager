@@ -3,24 +3,13 @@ package jpm.deps;
 import org.w3c.dom.*;
 import javax.xml.parsers.*;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class PomParser {
     
-    public static class Dependency {
-        public final String groupId;
-        public final String artifactId;
-        public final String version;
-        public final String scope;
-        public final boolean optional;
-        
-        public Dependency(String groupId, String artifactId, String version, String scope, boolean optional) {
-            this.groupId = groupId;
-            this.artifactId = artifactId;
-            this.version = version;
-            this.scope = scope;
-            this.optional = optional;
-        }
+    // Java 16+ record for dependency information
+    public record Dependency(String groupId, String artifactId, String version, String scope, boolean optional) {
         
         public boolean shouldInclude() {
             // Include compile and runtime scope (or null/empty scope which defaults to compile)
@@ -59,14 +48,14 @@ public class PomParser {
     }
     
     public List<Dependency> parseDependencies(String pomContent, String groupId, String artifactId, String version) throws Exception {
-        List<Dependency> deps = new ArrayList<>();
+        var deps = new ArrayList<Dependency>();
         
-        if (pomContent == null || pomContent.trim().isEmpty()) {
+        if (pomContent == null || pomContent.isBlank()) {
             return deps;
         }
         
-        InputStream is = new ByteArrayInputStream(pomContent.getBytes());
-        Document doc = docBuilder.parse(is);
+        var is = new ByteArrayInputStream(pomContent.getBytes(StandardCharsets.UTF_8));
+        var doc = docBuilder.parse(is);
         
         // Get current POM coordinates (may be passed in or parsed from POM)
         if (groupId == null) {
@@ -84,9 +73,9 @@ public class PomParser {
         Map<String, String> allManagedVersions = buildFullManagedVersionsMap(doc);
         
         // Find dependencies
-        NodeList depNodes = doc.getElementsByTagName("dependency");
+        var depNodes = doc.getElementsByTagName("dependency");
         for (int i = 0; i < depNodes.getLength(); i++) {
-            Element depElement = (Element) depNodes.item(i);
+            var depElement = (Element) depNodes.item(i);
             
             // Skip if this is inside dependencyManagement section (we only want actual dependencies)
             if (isInDependencyManagement(depElement)) {
@@ -136,7 +125,7 @@ public class PomParser {
     }
     
     private Map<String, String> buildFullPropertyMap(Document doc, String groupId, String artifactId, String version) {
-        Map<String, String> allProps = new HashMap<>();
+        var allProps = new HashMap<String, String>();
         
         // Add built-in Maven properties first (lowest priority)
         if (groupId != null) {
@@ -154,14 +143,14 @@ public class PomParser {
         }
         
         // Extract current POM properties
-        Map<String, String> currentProps = extractProperties(doc);
+        var currentProps = extractProperties(doc);
         
         // If we have parent resolver, resolve parent chain and merge
         if (parentResolver != null && groupId != null && artifactId != null && version != null) {
             try {
-                PomInfo parentInfo = parentResolver.resolveParentChain(groupId, artifactId, version, 0, new HashSet<>());
+                var parentInfo = parentResolver.resolveParentChain(groupId, artifactId, version, 0, new HashSet<>());
                 if (parentInfo != null) {
-                    Map<String, String> inheritedProps = parentInfo.getAllProperties();
+                    var inheritedProps = parentInfo.getAllProperties();
                     // Parent properties override built-ins, current overrides parent
                     allProps.putAll(inheritedProps);
                 }
@@ -177,10 +166,10 @@ public class PomParser {
     }
     
     private Map<String, String> buildFullManagedVersionsMap(Document doc) {
-        Map<String, String> allManaged = new HashMap<>();
+        var allManaged = new HashMap<String, String>();
         
         // Extract current POM managed versions
-        Map<String, String> currentManaged = extractDependencyManagement(doc);
+        var currentManaged = extractDependencyManagement(doc);
         
         // If we have parent resolver, get inherited managed versions
         if (parentResolver != null) {
@@ -191,9 +180,9 @@ public class PomParser {
             
             if (groupId != null && artifactId != null && version != null) {
                 try {
-                    PomInfo parentInfo = parentResolver.resolveParentChain(groupId, artifactId, version, 0, new HashSet<>());
+                    var parentInfo = parentResolver.resolveParentChain(groupId, artifactId, version, 0, new HashSet<>());
                     if (parentInfo != null) {
-                        Map<String, String> inheritedManaged = parentInfo.getAllManagedVersions();
+                        var inheritedManaged = parentInfo.getAllManagedVersions();
                         // Parent managed versions are base, current overrides
                         allManaged.putAll(inheritedManaged);
                     }
@@ -210,14 +199,14 @@ public class PomParser {
     }
     
     private Map<String, String> extractProperties(Document doc) {
-        Map<String, String> props = new HashMap<>();
+        var props = new HashMap<String, String>();
         
-        NodeList propNodes = doc.getElementsByTagName("properties");
+        var propNodes = doc.getElementsByTagName("properties");
         if (propNodes.getLength() > 0) {
-            Element propsElement = (Element) propNodes.item(0);
-            NodeList children = propsElement.getChildNodes();
+            var propsElement = (Element) propNodes.item(0);
+            var children = propsElement.getChildNodes();
             for (int i = 0; i < children.getLength(); i++) {
-                Node node = children.item(i);
+                var node = children.item(i);
                 if (node.getNodeType() == Node.ELEMENT_NODE) {
                     String name = node.getNodeName();
                     String value = node.getTextContent();
@@ -234,15 +223,15 @@ public class PomParser {
     }
     
     private Map<String, String> extractDependencyManagement(Document doc) {
-        Map<String, String> managed = new HashMap<>();
+        var managed = new HashMap<String, String>();
         
-        NodeList dmNodes = doc.getElementsByTagName("dependencyManagement");
+        var dmNodes = doc.getElementsByTagName("dependencyManagement");
         if (dmNodes.getLength() > 0) {
-            Element dmElement = (Element) dmNodes.item(0);
-            NodeList depNodes = dmElement.getElementsByTagName("dependency");
+            var dmElement = (Element) dmNodes.item(0);
+            var depNodes = dmElement.getElementsByTagName("dependency");
             
             for (int i = 0; i < depNodes.getLength(); i++) {
-                Element dep = (Element) depNodes.item(i);
+                var dep = (Element) depNodes.item(i);
                 String depGroupId = getTextContent(dep, "groupId");
                 String depArtifactId = getTextContent(dep, "artifactId");
                 String depVersion = getTextContent(dep, "version");
@@ -257,10 +246,10 @@ public class PomParser {
     }
     
     private boolean isInDependencyManagement(Element element) {
-        Node parent = element.getParentNode();
+        var parent = element.getParentNode();
         while (parent != null) {
             if (parent.getNodeType() == Node.ELEMENT_NODE) {
-                Element parentElement = (Element) parent;
+                var parentElement = (Element) parent;
                 if ("dependencyManagement".equals(parentElement.getNodeName())) {
                     return true;
                 }
@@ -274,7 +263,7 @@ public class PomParser {
     }
     
     private String getTextContent(Element parent, String tagName) {
-        NodeList nodes = parent.getElementsByTagName(tagName);
+        var nodes = parent.getElementsByTagName(tagName);
         if (nodes.getLength() > 0) {
             String content = nodes.item(0).getTextContent();
             return content != null ? content.trim() : null;
@@ -288,7 +277,7 @@ public class PomParser {
      */
     private List<Map.Entry<String, String>> getSortedPropertyEntries(Map<String, String> properties) {
         // Create list and sort by key length descending (longest keys first)
-        List<Map.Entry<String, String>> entries = new ArrayList<>(properties.entrySet());
+        var entries = new ArrayList<Map.Entry<String, String>>(properties.entrySet());
         entries.sort((a, b) -> Integer.compare(b.getKey().length(), a.getKey().length()));
         return entries;
     }
@@ -296,8 +285,8 @@ public class PomParser {
     private String substituteProperties(String value, Map<String, String> properties) {
         if (value == null) return null;
         
-        String result = value;
-        List<Map.Entry<String, String>> entries = getSortedPropertyEntries(properties);
+        var result = value;
+        var entries = getSortedPropertyEntries(properties);
         
         for (Map.Entry<String, String> entry : entries) {
             result = result.replace(entry.getKey(), entry.getValue());

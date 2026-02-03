@@ -42,27 +42,27 @@ public class AddCommand implements Callable<Integer> {
     public Integer call() {
         try {
             // Check for jpm.toml
-            File configFile = new File("jpm.toml");
+            var configFile = new File("jpm.toml");
             if (!configFile.exists()) {
                 System.err.println("Error: No jpm.toml found. Run 'jpm new <name>' first.");
                 return 1;
             }
             
-            int successCount = 0;
-            int total = dependencies.size();
+            var successCount = 0;
+            var total = dependencies.size();
             
             // Track all dependencies to add
-            List<DependencyInfo> depsToAdd = new ArrayList<>();
+            var depsToAdd = new ArrayList<DependencyInfo>();
             
             // Phase 1: Collect all dependencies (with interactive selection)
             for (int i = 0; i < total; i++) {
-                String dep = dependencies.get(i);
+                var dep = dependencies.get(i);
                 
                 if (total > 1) {
                     System.out.println("\n[" + (i + 1) + "/" + total + "] Processing \"" + dep + "\"...");
                 }
                 
-                DependencyInfo info = parseDependency(dep);
+                var info = parseDependency(dep);
                 if (info != null) {
                     depsToAdd.add(info);
                     successCount++;
@@ -77,17 +77,16 @@ public class AddCommand implements Callable<Integer> {
             // Phase 2: Resolve and add all dependencies
             System.out.println("\nResolving " + depsToAdd.size() + " dependencies...");
             
-            JpmConfig config = ConfigParser.loadOrCreate(configFile);
-            DependencyResolver resolver = new DependencyResolver();
-            int totalResolved = 0;
+            var config = ConfigParser.loadOrCreate(configFile);
+            var resolver = new DependencyResolver();
+            var totalResolved = 0;
             
-            for (DependencyInfo info : depsToAdd) {
-                String ga = info.groupId + ":" + info.artifactId;
+            for (var info : depsToAdd) {
+                var ga = info.groupId + ":" + info.artifactId;
                 
                 try {
                     // Resolve the dependency
-                    List<DependencyResolver.ResolvedDependency> resolved = 
-                        resolver.resolve(info.groupId, info.artifactId, info.version);
+                    var resolved = resolver.resolve(info.groupId, info.artifactId, info.version);
                     
                     if (!resolved.isEmpty()) {
                         // Add to config
@@ -106,16 +105,16 @@ public class AddCommand implements Callable<Integer> {
             System.out.println("Total resolved: " + totalResolved + " artifacts");
             
             // Ensure .project file exists
-            File projectFile = new File(".project");
+            var projectFile = new File(".project");
             if (!projectFile.exists()) {
                 System.out.println("\nCreating .project file...");
-                String projectXml = generateProjectFile(config.getPackage().getName());
+                var projectXml = generateProjectFile(config.getPackage().getName());
                 FileUtils.writeFile(projectFile, projectXml);
             }
             
             // Sync IDE configuration once at the end
             System.out.println("\nSyncing IDE configuration...");
-            ClasspathGenerator generator = new ClasspathGenerator();
+            var generator = new ClasspathGenerator();
             generator.generateClasspath(config, new File("."));
             System.out.println("Generated .classpath file");
             
@@ -129,7 +128,7 @@ public class AddCommand implements Callable<Integer> {
     }
     
     private DependencyInfo parseDependency(String input) throws IOException {
-        String[] parts = input.split(":");
+        var parts = input.split(":");
         
         if (parts.length == 3) {
             // Full coordinates: group:artifact:version
@@ -138,7 +137,7 @@ public class AddCommand implements Callable<Integer> {
             // Could be group:artifact or artifact:version
             if (parts[0].contains(".")) {
                 // group:artifact - need to find version
-                String version = searchClient.getLatestStableVersion(parts[0], parts[1]);
+                var version = searchClient.getLatestStableVersion(parts[0], parts[1]);
                 if (version == null) {
                     System.err.println("Error: Could not find latest stable version for " + parts[0] + ":" + parts[1]);
                     return null;
@@ -164,7 +163,7 @@ public class AddCommand implements Callable<Integer> {
     
     private DependencyInfo searchAndSelect(String artifactId, String explicitVersion) throws IOException {
         // Search Maven Central
-        List<MavenSearchClient.SearchResult> results = searchClient.searchByArtifactId(artifactId, 10);
+        var results = searchClient.searchByArtifactId(artifactId, 10);
         
         if (results.isEmpty()) {
             System.out.println("No packages found matching \"" + artifactId + "\"");
@@ -173,43 +172,43 @@ public class AddCommand implements Callable<Integer> {
         
         // Show results
         System.out.println("Found " + results.size() + " results:");
-        int displayCount = Math.min(results.size(), 10);
+        var displayCount = Math.min(results.size(), 10);
         for (int i = 0; i < displayCount; i++) {
             System.out.println("  " + (i + 1) + ". " + results.get(i));
         }
         
         // Single exact match shortcut
         if (results.size() == 1) {
-            MavenSearchClient.SearchResult result = results.get(0);
-            String version = explicitVersion != null ? explicitVersion : 
-                            searchClient.getLatestStableVersion(result.groupId, result.artifactId);
-            return confirmAndCreate(result.groupId, result.artifactId, version);
+            var result = results.get(0);
+            var version = explicitVersion != null ? explicitVersion : 
+                            searchClient.getLatestStableVersion(result.groupId(), result.artifactId());
+            return confirmAndCreate(result.groupId(), result.artifactId(), version);
         }
         
         // Get user selection
-        int selection = promptForSelection(displayCount);
+        var selection = promptForSelection(displayCount);
         if (selection < 0) {
             System.out.println("Cancelled");
             return null;
         }
         
-        MavenSearchClient.SearchResult selected = results.get(selection);
-        String version = explicitVersion != null ? explicitVersion : 
-                        searchClient.getLatestStableVersion(selected.groupId, selected.artifactId);
+        var selected = results.get(selection);
+        var version = explicitVersion != null ? explicitVersion : 
+                        searchClient.getLatestStableVersion(selected.groupId(), selected.artifactId());
         
-        return confirmAndCreate(selected.groupId, selected.artifactId, version);
+        return confirmAndCreate(selected.groupId(), selected.artifactId(), version);
     }
     
     private DependencyInfo confirmAndCreate(String groupId, String artifactId, String version) throws IOException {
-        String ga = groupId + ":" + artifactId;
+        var ga = groupId + ":" + artifactId;
         
         // Check if already exists in config
-        File configFile = new File("jpm.toml");
+        var configFile = new File("jpm.toml");
         if (configFile.exists()) {
             try {
-                JpmConfig config = ConfigParser.loadOrCreate(configFile);
+                var config = ConfigParser.loadOrCreate(configFile);
                 if (config.getDependencies().containsKey(ga)) {
-                    String existingVersion = config.getDependencies().get(ga);
+                    var existingVersion = config.getDependencies().get(ga);
                     if (existingVersion.equals(version)) {
                         System.out.println("Note: " + ga + " already at version " + version);
                         return new DependencyInfo(groupId, artifactId, version);
@@ -229,7 +228,7 @@ public class AddCommand implements Callable<Integer> {
         if (!autoConfirm) {
             System.out.print("Add? [Y/n]: ");
             String response = readLine();
-            if (response != null && !response.trim().isEmpty() && 
+            if (response != null && !response.isBlank() && 
                 !response.trim().toLowerCase().startsWith("y")) {
                 System.out.println("Skipped");
                 return null;
@@ -241,14 +240,14 @@ public class AddCommand implements Callable<Integer> {
     
     private int promptForSelection(int max) {
         System.out.print("Select [1-" + max + "] or press Enter to cancel: ");
-        String input = readLine();
+        var input = readLine();
         
-        if (input == null || input.trim().isEmpty()) {
+        if (input == null || input.isBlank()) {
             return -1;
         }
         
         try {
-            int choice = Integer.parseInt(input.trim());
+            var choice = Integer.parseInt(input.trim());
             if (choice >= 1 && choice <= max) {
                 return choice - 1; // Convert to 0-indexed
             }
@@ -269,34 +268,28 @@ public class AddCommand implements Callable<Integer> {
     }
     
     private String generateProjectFile(String projectName) {
-        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
-               "<projectDescription>\n" +
-               "\t<name>" + projectName + "</name>\n" +
-               "\t<comment></comment>\n" +
-               "\t<projects>\n" +
-               "\t</projects>\n" +
-               "\t<buildSpec>\n" +
-               "\t\t<buildCommand>\n" +
-               "\t\t\t<name>org.eclipse.jdt.core.javabuilder</name>\n" +
-               "\t\t\t<arguments>\n" +
-               "\t\t\t</arguments>\n" +
-               "\t\t</buildCommand>\n" +
-               "\t</buildSpec>\n" +
-               "\t<natures>\n" +
-               "\t\t<nature>org.eclipse.jdt.core.javanature</nature>\n" +
-               "\t</natures>\n" +
-               "</projectDescription>\n";
+        return """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <projectDescription>
+            	<name>%s</name>
+            	<comment></comment>
+            	<projects>
+            	</projects>
+            	<buildSpec>
+            		<buildCommand>
+            			<name>org.eclipse.jdt.core.javabuilder</name>
+            			<arguments>
+            			</arguments>
+            		</buildCommand>
+            	</buildSpec>
+            	<natures>
+            		<nature>org.eclipse.jdt.core.javanature</nature>
+            	</natures>
+            </projectDescription>
+            """.formatted(projectName);
     }
     
-    private static class DependencyInfo {
-        final String groupId;
-        final String artifactId;
-        final String version;
-        
-        DependencyInfo(String groupId, String artifactId, String version) {
-            this.groupId = groupId;
-            this.artifactId = artifactId;
-            this.version = version;
-        }
+    // Java 16+ record for dependency information
+    private record DependencyInfo(String groupId, String artifactId, String version) {
     }
 }

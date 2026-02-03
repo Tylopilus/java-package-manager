@@ -18,7 +18,7 @@ public class NewCommand implements Callable<Integer> {
     @Override
     public Integer call() {
         try {
-            File projectDir = new File(projectName);
+            var projectDir = new File(projectName);
             
             if (projectDir.exists()) {
                 System.err.println("Error: Directory '" + projectName + "' already exists");
@@ -31,36 +31,36 @@ public class NewCommand implements Callable<Integer> {
             FileUtils.ensureDirectory(new File(projectDir, "src"));
             
             // Create jpm.toml
-            JpmConfig config = new JpmConfig();
+            var config = new JpmConfig();
             config.getPackage().setName(projectName);
             config.getPackage().setVersion("0.1.0");
             config.getPackage().setJavaVersion("21");
             
-            File configFile = new File(projectDir, "jpm.toml");
+            var configFile = new File(projectDir, "jpm.toml");
             ConfigParser.save(config, configFile);
             System.out.println("  Created jpm.toml");
             
             // Create Main.java template
-            String mainClass = generateMainClass(projectName);
-            File mainFile = new File(projectDir, "src/Main.java");
+            var mainClass = generateMainClass(projectName);
+            var mainFile = new File(projectDir, "src/Main.java");
             FileUtils.writeFile(mainFile, mainClass);
             System.out.println("  Created src/Main.java");
 
             // Create .project file (required for IDE integration)
-            String projectXml = generateProjectFile(projectName);
-            File projectFile = new File(projectDir, ".project");
+            var projectXml = generateProjectFile(projectName);
+            var projectFile = new File(projectDir, ".project");
             FileUtils.writeFile(projectFile, projectXml);
             System.out.println("  Created .project");
 
             // Create initial .classpath file
-            String classpathXml = generateClasspath(config.getPackage().getJavaVersion());
-            File classpathFile = new File(projectDir, ".classpath");
+            var classpathXml = generateClasspath(config.getPackage().getJavaVersion());
+            var classpathFile = new File(projectDir, ".classpath");
             FileUtils.writeFile(classpathFile, classpathXml);
             System.out.println("  Created .classpath");
 
             // Create .gitignore
-            String gitignore = generateGitignore();
-            File gitignoreFile = new File(projectDir, ".gitignore");
+            var gitignore = generateGitignore();
+            var gitignoreFile = new File(projectDir, ".gitignore");
             FileUtils.writeFile(gitignoreFile, gitignore);
             System.out.println("  Created .gitignore");
             

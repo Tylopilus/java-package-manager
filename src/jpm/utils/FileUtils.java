@@ -2,6 +2,7 @@ package jpm.utils;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
@@ -50,7 +51,7 @@ public class FileUtils {
         if (parent != null) {
             ensureDirectory(parent);
         }
-        Files.write(file.toPath(), content.getBytes());
+        Files.write(file.toPath(), content.getBytes(StandardCharsets.UTF_8));
     }
     
     public static void writeFile(String path, String content) throws IOException {
@@ -58,7 +59,7 @@ public class FileUtils {
     }
     
     public static String readFile(File file) throws IOException {
-        return new String(Files.readAllBytes(file.toPath()));
+        return new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
     }
     
     public static String readFile(String path) throws IOException {

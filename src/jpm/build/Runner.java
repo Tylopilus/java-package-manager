@@ -7,23 +7,19 @@ import java.util.List;
 
 public class Runner {
     
-    public static class RunResult {
-        public final boolean success;
-        public final int exitCode;
-        
-        public RunResult(boolean success, int exitCode) {
-            this.success = success;
-            this.exitCode = exitCode;
-        }
-    }
+    /**
+     * Record representing the result of a run operation.
+     * Uses Java 16+ records for concise immutable data classes.
+     */
+    public record RunResult(boolean success, int exitCode) {}
     
     public RunResult run(String mainClass, File classesDir, String classpath) throws IOException {
         // Build java command
-        List<String> command = new ArrayList<>();
+        var command = new ArrayList<String>();
         command.add("java");
         
         // Build classpath: classesDir + dependencies
-        StringBuilder fullClasspath = new StringBuilder();
+        var fullClasspath = new StringBuilder();
         fullClasspath.append(classesDir.getAbsolutePath());
         
         if (classpath != null && !classpath.isEmpty()) {
@@ -36,13 +32,13 @@ public class Runner {
         command.add(mainClass);
         
         // Execute
-        ProcessBuilder pb = new ProcessBuilder(command);
+        var pb = new ProcessBuilder(command);
         pb.inheritIO();
         
-        Process process = pb.start();
+        var process = pb.start();
         
         try {
-            int exitCode = process.waitFor();
+            var exitCode = process.waitFor();
             return new RunResult(exitCode == 0, exitCode);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -51,10 +47,10 @@ public class Runner {
     }
     
     public RunResult runWithArgs(String mainClass, File classesDir, String classpath, String[] args) throws IOException {
-        List<String> command = new ArrayList<>();
+        var command = new ArrayList<String>();
         command.add("java");
         
-        StringBuilder fullClasspath = new StringBuilder();
+        var fullClasspath = new StringBuilder();
         fullClasspath.append(classesDir.getAbsolutePath());
         
         if (classpath != null && !classpath.isEmpty()) {
@@ -67,18 +63,18 @@ public class Runner {
         command.add(mainClass);
         
         if (args != null) {
-            for (String arg : args) {
+            for (var arg : args) {
                 command.add(arg);
             }
         }
         
-        ProcessBuilder pb = new ProcessBuilder(command);
+        var pb = new ProcessBuilder(command);
         pb.inheritIO();
         
-        Process process = pb.start();
+        var process = pb.start();
         
         try {
-            int exitCode = process.waitFor();
+            var exitCode = process.waitFor();
             return new RunResult(exitCode == 0, exitCode);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

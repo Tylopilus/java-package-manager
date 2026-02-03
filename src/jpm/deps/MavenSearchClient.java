@@ -4,9 +4,11 @@ import jpm.net.HttpClientManager;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,7 +28,7 @@ public class MavenSearchClient {
     
     public List<SearchResult> searchByArtifactId(String artifactId, int rows) throws IOException {
         try {
-            String encodedArtifactId = java.net.URLEncoder.encode(artifactId, "UTF-8");
+            String encodedArtifactId = URLEncoder.encode(artifactId, StandardCharsets.UTF_8);
             String url = SEARCH_URL + "?q=a:" + encodedArtifactId + "&rows=" + rows + "&wt=json";
             
             HttpRequest request = HttpRequest.newBuilder()
@@ -50,8 +52,8 @@ public class MavenSearchClient {
     
     public String getLatestStableVersion(String groupId, String artifactId) throws IOException {
         try {
-            String encodedGroupId = java.net.URLEncoder.encode(groupId, "UTF-8");
-            String encodedArtifactId = java.net.URLEncoder.encode(artifactId, "UTF-8");
+            String encodedGroupId = URLEncoder.encode(groupId, StandardCharsets.UTF_8);
+            String encodedArtifactId = URLEncoder.encode(artifactId, StandardCharsets.UTF_8);
             String url = GAV_URL + "?q=g:" + encodedGroupId + "+AND+a:" + encodedArtifactId + "&core=gav&rows=20&wt=json";
             
             HttpRequest request = HttpRequest.newBuilder()
@@ -74,16 +76,16 @@ public class MavenSearchClient {
     }
     
     private List<SearchResult> parseSearchResults(String json) {
-        List<SearchResult> results = new ArrayList<>();
+        var results = new ArrayList<SearchResult>();
         
         // Simple JSON parsing using regex
-        Pattern docPattern = Pattern.compile("\\{[^}]*\"g\"\\s*:\\s*\"([^\"]+)\"[^}]*\"a\"\\s*:\\s*\"([^\"]+)\"[^}]*\"latestVersion\"\\s*:\\s*\"([^\"]+)\"[^}]*\\}");
-        Matcher matcher = docPattern.matcher(json);
+        var docPattern = Pattern.compile("\\{[^}]*\"g\"\\s*:\\s*\"([^\"]+)\"[^}]*\"a\"\\s*:\\s*\"([^\"]+)\"[^}]*\"latestVersion\"\\s*:\\s*\"([^\"]+)\"[^}]*\\}");
+        var matcher = docPattern.matcher(json);
         
         while (matcher.find()) {
-            String groupId = matcher.group(1);
-            String artifactId = matcher.group(2);
-            String version = matcher.group(3);
+            var groupId = matcher.group(1);
+            var artifactId = matcher.group(2);
+            var version = matcher.group(3);
             results.add(new SearchResult(groupId, artifactId, version));
         }
         
@@ -92,13 +94,13 @@ public class MavenSearchClient {
     
     private String parseLatestStableVersion(String json) {
         // Parse all versions from the response
-        Pattern versionPattern = Pattern.compile("\"v\"\\s*:\\s*\"([^\"]+)\"");
-        Matcher matcher = versionPattern.matcher(json);
+        var versionPattern = Pattern.compile("\"v\"\\s*:\\s*\"([^\"]+)\"");
+        var matcher = versionPattern.matcher(json);
         
         String latestStable = null;
         
         while (matcher.find()) {
-            String version = matcher.group(1);
+            var version = matcher.group(1);
             if (isStableVersion(version)) {
                 // Return the first stable version (they're sorted by Maven Central, newest first)
                 if (latestStable == null || isNewer(version, latestStable)) {
@@ -123,17 +125,11 @@ public class MavenSearchClient {
         return jpm.utils.Version.isNewer(v1, v2);
     }
     
-    public static class SearchResult {
-        public final String groupId;
-        public final String artifactId;
-        public final String latestVersion;
-        
-        public SearchResult(String groupId, String artifactId, String latestVersion) {
-            this.groupId = groupId;
-            this.artifactId = artifactId;
-            this.latestVersion = latestVersion;
-        }
-        
+    /**
+     * Record representing a Maven search result.
+     * Uses Java 16+ records for concise immutable data classes.
+     */
+    public record SearchResult(String groupId, String artifactId, String latestVersion) {
         @Override
         public String toString() {
             return groupId + ":" + artifactId + " (v" + latestVersion + ")";

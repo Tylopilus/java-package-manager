@@ -143,24 +143,11 @@ public class MavenClient {
     }
     
     /**
-     * Specification for an artifact to download in batch operations.
+     * Record representing an artifact specification for batch operations.
+     * Uses Java 16+ records for concise immutable data classes.
      */
-    public static class ArtifactSpec {
-        public final String groupId;
-        public final String artifactId;
-        public final String version;
-        public final File outputDir;
-        public final String extension;
-        
-        public ArtifactSpec(String groupId, String artifactId, String version, 
-                           File outputDir, String extension) {
-            this.groupId = groupId;
-            this.artifactId = artifactId;
-            this.version = version;
-            this.outputDir = outputDir;
-            this.extension = extension;
-        }
-        
+    public record ArtifactSpec(String groupId, String artifactId, String version, 
+                               File outputDir, String extension) {
         @Override
         public String toString() {
             return groupId + ":" + artifactId + ":" + version;

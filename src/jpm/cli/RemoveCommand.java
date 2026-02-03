@@ -19,20 +19,20 @@ public class RemoveCommand implements Callable<Integer> {
     public Integer call() {
         try {
             // Load config
-            File configFile = new File("jpm.toml");
+            var configFile = new File("jpm.toml");
             if (!configFile.exists()) {
                 System.err.println("Error: No jpm.toml found.");
                 return 1;
             }
 
-            JpmConfig config = ConfigParser.load(configFile);
+            var config = ConfigParser.load(configFile);
 
             // Find dependency to remove
             String keyToRemove = null;
             String groupId = null;
 
-            for (String key : config.getDependencies().keySet()) {
-                String[] parts = key.split(":");
+            for (var key : config.getDependencies().keySet()) {
+                var parts = key.split(":");
                 if (parts.length == 2) {
                     if (parts[1].equals(artifact) || key.equals(artifact)) {
                         keyToRemove = key;
@@ -48,19 +48,19 @@ public class RemoveCommand implements Callable<Integer> {
             }
 
             // Remove from config
-            String version = config.getDependencies().get(keyToRemove);
+            var version = config.getDependencies().get(keyToRemove);
             config.removeDependency(artifact);
             ConfigParser.save(config, configFile);
 
             // Clean from cache
-            CacheManager cacheManager = new CacheManager();
+            var cacheManager = new CacheManager();
             cacheManager.cleanArtifact(groupId, artifact);
 
             System.out.println("Removed " + keyToRemove + "=" + version);
 
             // Auto-sync IDE configuration
             System.out.println("Syncing IDE configuration...");
-            ClasspathGenerator generator = new ClasspathGenerator();
+            var generator = new ClasspathGenerator();
             generator.generateClasspath(config, new File("."));
             System.out.println("Updated .classpath file");
 

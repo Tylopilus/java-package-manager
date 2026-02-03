@@ -4,6 +4,7 @@ import jpm.utils.FileUtils;
 import org.w3c.dom.*;
 import javax.xml.parsers.*;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class ParentPomResolver {
@@ -123,7 +124,7 @@ public class ParentPomResolver {
         pomInfo.setArtifactId(artifactId);
         pomInfo.setVersion(version);
         
-        InputStream is = new ByteArrayInputStream(pomContent.getBytes());
+        InputStream is = new ByteArrayInputStream(pomContent.getBytes(StandardCharsets.UTF_8));
         Document doc = docBuilder.parse(is);
         
         // Extract properties

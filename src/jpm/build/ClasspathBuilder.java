@@ -19,12 +19,12 @@ public class ClasspathBuilder {
             return "";
         }
         
-        File[] jars = libDir.listFiles((dir, name) -> name.endsWith(".jar"));
+        var jars = libDir.listFiles((dir, name) -> name.endsWith(".jar"));
         if (jars == null || jars.length == 0) {
             return "";
         }
         
-        String[] paths = new String[jars.length];
+        var paths = new String[jars.length];
         for (int i = 0; i < jars.length; i++) {
             paths[i] = jars[i].getAbsolutePath();
         }
@@ -32,8 +32,8 @@ public class ClasspathBuilder {
     }
     
     public static String combineClasspaths(String... classpaths) {
-        StringBuilder result = new StringBuilder();
-        boolean first = true;
+        var result = new StringBuilder();
+        var first = true;
         
         for (String cp : classpaths) {
             if (cp != null && !cp.isEmpty()) {
@@ -61,8 +61,8 @@ public class ClasspathBuilder {
         }
         
         // Count non-empty classpaths
-        int nonEmptyCount = 0;
-        for (String cp : classpaths) {
+        var nonEmptyCount = 0;
+        for (var cp : classpaths) {
             if (cp != null && !cp.isEmpty()) {
                 nonEmptyCount++;
             }
@@ -73,9 +73,9 @@ public class ClasspathBuilder {
         }
         
         // Collect non-empty paths
-        String[] paths = new String[nonEmptyCount];
-        int idx = 0;
-        for (String cp : classpaths) {
+        var paths = new String[nonEmptyCount];
+        var idx = 0;
+        for (var cp : classpaths) {
             if (cp != null && !cp.isEmpty()) {
                 paths[idx++] = cp;
             }
